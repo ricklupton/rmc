@@ -4,17 +4,16 @@ Code originally from https://github.com/lschwetlick/maxio through
 https://github.com/chemag/maxio .
 """
 
-import io
 import logging
 import math
 import string
-import tempfile
+
+from typing import Iterable
 
 from dataclasses import dataclass
 
-from . import read_blocks
-
-from .scene_stream import (
+from rmscene import (
+    read_blocks,
     Block,
     RootTextBlock,
     AuthorIdsBlock,
@@ -28,10 +27,6 @@ from .scene_stream import (
 
 from .writing_tools import (
     Pen,
-)
-
-from .utils import (
-    run_command,
 )
 
 _logger = logging.getLogger(__name__)
@@ -65,53 +60,48 @@ class SvgDocInfo:
     ypos_delta: float
 
 
-def rm2pdf(infile, outfile):
-    tmp_outfile = tempfile.NamedTemporaryFile().name + ".svg"
-    rm2svg(infile, tmp_outfile)
-    # use inkscape to convert svg to pdf
-    command = 'inkscape %s --export-filename=%s' % (tmp_outfile, outfile)
-    returncode, out, err = run_command(command)
-    assert(returncode == 0)
+def rm_to_svg(rm_path, svg_path, debug=0):
+    """Convert `rm_path` to SVG at `svg_path`."""
+    with open(rm_path, "rb") as infile, open(svg_path, "wt") as outfile:
+        blocks = read_blocks(infile)
+        blocks_to_svg(blocks, outfile, debug)
 
 
-def rm2svg(infile, outfile, debug=0):
-    # parse the lines (.rm) input file into a series of blocks
-    with open(infile, 'rb') as infh:
-        infile_datastream = io.BufferedReader(infh)
-        # we need to process the blocks twice to understand the dimensions, so
-        # let's put the iterable into a list
-        blocks = list(read_blocks(infile_datastream))
+def blocks_to_svg(blocks: Iterable[Block], output, debug=0):
+    """Convert Blocks to SVG."""
+
+    # we need to process the blocks twice to understand the dimensions, so
+    # let's put the iterable into a list
+    blocks = list(blocks)
 
     # get document dimensions
     svg_doc_info = get_dimensions(blocks, debug)
 
-    with open(outfile, 'w') as output:
-        # add svg header
-        output.write(SVG_HEADER.substitute(height=svg_doc_info.height, width=svg_doc_info.width))
-        output.write('\n')
+    # add svg header
+    output.write(SVG_HEADER.substitute(height=svg_doc_info.height, width=svg_doc_info.width))
+    output.write('\n')
 
-        # add svg page info
-        output.write('    <g id="p1" style="display:inline">\n')
-        output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
+    # add svg page info
+    output.write('    <g id="p1" style="display:inline">\n')
+    output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
 
-        for block in blocks:
-            if isinstance(block, SceneLineItemBlock):
-                draw_stroke(block, output, svg_doc_info, debug)
-            elif isinstance(block, RootTextBlock):
-                draw_text(block, output, svg_doc_info, debug)
-            else:
-                if debug > 0:
-                    print(f'warning: not converting block: {block.__class__}')
+    for block in blocks:
+        if isinstance(block, SceneLineItemBlock):
+            draw_stroke(block, output, svg_doc_info, debug)
+        elif isinstance(block, RootTextBlock):
+            draw_text(block, output, svg_doc_info, debug)
+        else:
+            if debug > 0:
+                print(f'warning: not converting block: {block.__class__}')
 
-        # Overlay the page with a clickable rect to flip pages
-        output.write('\n')
-        output.write('        <!-- clickable rect to flip pages -->\n')
-        output.write(f'        <rect x="0" y="0" width="{svg_doc_info.width}" height="{svg_doc_info.height}" fill-opacity="0"/>\n')
-        # Closing page group
-        output.write('    </g>\n')
-        # END notebook
-        output.write('</svg>\n')
-        output.close()
+    # Overlay the page with a clickable rect to flip pages
+    output.write('\n')
+    output.write('        <!-- clickable rect to flip pages -->\n')
+    output.write(f'        <rect x="0" y="0" width="{svg_doc_info.width}" height="{svg_doc_info.height}" fill-opacity="0"/>\n')
+    # Closing page group
+    output.write('    </g>\n')
+    # END notebook
+    output.write('</svg>\n')
 
 
 def draw_stroke(block, output, svg_doc_info, debug):

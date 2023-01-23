@@ -1,42 +1,28 @@
-# rmscene
+# rmc
 
-Python library to read v6 files from reMarkable tables (software version 3).
-
-In particular, this version introduces the ability to include text as well as drawn lines. Extracting this text is the original motivation to develop this library, but it also can read much of the other types of data in the reMarkable files.
-
-Includes some experimental command line tools to dump block structure and text content:
+Command line tool for converting to/from remarkable `.rm` version 6 (software version 3) files.
 
 ``` shellsession
-$ python -m rmscene print-text file.rm
-
-$ python -m rmscene print-blocks file.rm
+$ rmc -t txt file.rm
+$ rmc -t svg -o file.svg file.rm
+$ rmc file.rm -o file.pdf
 ```
 
+Or create a `.rm` file with specified text:
 
-# operation
-
-Test the parser:
 ``` shellsession
-$ python -m src.rmscene print-blocks page_file.rm
+$ rmc -t rm text.md -o text.rm
 ```
 
-Convert a .rm file into an SVG file.
-``` shellsession
-$ python -m src.rmscene rm2svg tests/rm/dot.stroke.rm /tmp/foo.svg
-```
+## SVG/PDF Conversion Status
 
-Convert a .rm file into an PDF file.
-``` shellsession
-$ python -m src.rmscene rm2pdf tests/rm/dot.stroke.rm /tmp/foo.pdf
-```
+Right now the converter works well while there are no text boxes. If you add text boxes, there are x issues:
+
+1. if the text box contains multiple lines, the lines are actually printed in the same line, and
+2. the position of the strokes gets corrupted.
 
 # Acknowledgements
 
-https://github.com/ddvk/reader helped a lot in figuring out the structure and meaning of the files.
+`rmc` uses [rmscene](https://github.com/ricklupton/rmscene) to read the `.rm` files, for which https://github.com/ddvk/reader helped a lot in figuring out the structure and meaning of the files.
 
-
-# SVG/PDF Conversion Status
-
-Right now the conversor (it is the same for svg and pdf) works well while there are no text boxes. If you add text boxes, there are 2x issues:
-* (1) if the text box contains multiple lines, the lines are actually printed in the same line, and
-* (2) the position of the strokes gets corrupted.
+[@chemag](https://github.com/chemag) added initial support for converting to svg and pdf.
