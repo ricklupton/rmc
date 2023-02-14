@@ -78,6 +78,8 @@ def convert_rm(filename: Path, to, fout):
     with open(filename, "rb") as f:
         if to == "blocks":
             pprint_file(f, fout)
+        elif to == "blocks-data":
+            pprint_file(f, fout, data=False)
         elif to == "markdown":
             print_text(f, fout)
         elif to == "svg":
@@ -93,12 +95,13 @@ def convert_rm(filename: Path, to, fout):
             raise click.UsageError("Unknown format %s" % to)
 
 
-def pprint_file(f, fout) -> None:
+def pprint_file(f, fout, data=True) -> None:
     import pprint
+    depth = None if data else 1
     result = read_blocks(f)
     for el in result:
         print(file=fout)
-        pprint.pprint(el, stream=fout)
+        pprint.pprint(el, depth=depth, stream=fout)
 
 
 def print_text(f, fout):
