@@ -13,11 +13,20 @@ from .exporters.pdf import svg_to_pdf
 
 
 @click.command
-@click.option("-f", "--from", "from_")
-@click.option("-t", "--to")
-@click.option("-o", "--output", type=click.Path())
+@click.option("-f", "--from", "from_", metavar="FORMAT", help="Format to convert from (default: guess from filename)")
+@click.option("-t", "--to", metavar="FORMAT", help="Format to convert to (default: guess from filename)")
+@click.option("-o", "--output", type=click.Path(), help="Output filename (default: write to standard out)")
 @click.argument("input", nargs=-1, type=click.Path(exists=True))
 def cli(from_, to, output, input):
+    """Convert to/from reMarkable v6 files.
+
+    Available FORMATs are: `rm` (reMarkable file), `markdown`, `svg`, `pdf`,
+    `blocks`, `blocks-data`.
+
+    Formats `blocks` and `blocks-data` dump the internal structure of the `rm`
+    file, with and without detailed data values respectively.
+
+    """
     input = [Path(p) for p in input]
     if output is not None:
         output = Path(output)

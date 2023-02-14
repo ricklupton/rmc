@@ -2,17 +2,34 @@
 
 Command line tool for converting to/from remarkable `.rm` version 6 (software version 3) files.
 
-``` shellsession
-$ rmc -t txt file.rm
-$ rmc -t svg -o file.svg file.rm
-$ rmc file.rm -o file.pdf
-```
+## Installation
 
-Or create a `.rm` file with specified text:
+To install in your current Python environment:
 
-``` shellsession
-$ rmc -t rm text.md -o text.rm
-```
+    pip install rmc
+    
+Or use [pipx](https://pypa.github.io/pipx/) to install in an isolated environment (recommended):
+
+    pipx install rmc
+
+## Usage
+
+Convert a remarkable v6 file to other formats, specified by `-t FORMAT`:
+
+    $ rmc -t markdown file.rm
+    Text in the file is printed to standard output.
+
+Specify the filename to write the output to with `-o`:
+
+    $ rmc -t svg -o file.svg file.rm
+    
+The format is guessed based on the filename if not specified:
+    
+    $ rmc file.rm -o file.pdf
+
+Create a `.rm` file containing the text in `text.md`:
+
+    $ rmc -t rm text.md -o text.rm
 
 ## SVG/PDF Conversion Status
 
