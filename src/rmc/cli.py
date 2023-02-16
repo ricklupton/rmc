@@ -10,6 +10,7 @@ from rmscene import read_blocks, write_blocks, TextFormat
 from rmscene.text import extract_text, simple_text_document
 from .exporters.svg import blocks_to_svg
 from .exporters.pdf import svg_to_pdf
+from .exporters.markdown import print_text
 
 import logging
 
@@ -122,22 +123,6 @@ def pprint_file(f, fout, data=True) -> None:
     for el in result:
         print(file=fout)
         pprint.pprint(el, depth=depth, stream=fout)
-
-
-def print_text(f, fout):
-    for fmt, line in extract_text(f):
-        if fmt == TextFormat.BULLET:
-            print("- " + line, file=fout)
-        elif fmt == TextFormat.BULLET2:
-            print("  + " + line, file=fout)
-        elif fmt == TextFormat.BOLD:
-            print("> " + line, file=fout)
-        elif fmt == TextFormat.HEADING:
-            print("# " + line, file=fout)
-        elif fmt == TextFormat.PLAIN:
-            print(line, file=fout)
-        else:
-            print(("[unknown format %s] " % fmt) + line, file=fout)
 
 
 def convert_text(text, fout):
