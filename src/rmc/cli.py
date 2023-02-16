@@ -11,13 +11,16 @@ from rmscene.text import extract_text, simple_text_document
 from .exporters.svg import blocks_to_svg
 from .exporters.pdf import svg_to_pdf
 
+import logging
+
 
 @click.command
+@click.option('-v', '--verbose', count=True)
 @click.option("-f", "--from", "from_", metavar="FORMAT", help="Format to convert from (default: guess from filename)")
 @click.option("-t", "--to", metavar="FORMAT", help="Format to convert to (default: guess from filename)")
 @click.option("-o", "--output", type=click.Path(), help="Output filename (default: write to standard out)")
 @click.argument("input", nargs=-1, type=click.Path(exists=True))
-def cli(from_, to, output, input):
+def cli(verbose, from_, to, output, input):
     """Convert to/from reMarkable v6 files.
 
     Available FORMATs are: `rm` (reMarkable file), `markdown`, `svg`, `pdf`,
@@ -27,6 +30,14 @@ def cli(from_, to, output, input):
     file, with and without detailed data values respectively.
 
     """
+
+    if verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    elif verbose >= 1:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.WARNING)
+
     input = [Path(p) for p in input]
     if output is not None:
         output = Path(output)
