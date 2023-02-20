@@ -95,12 +95,39 @@ def guess_format(p: Path):
         return "blocks"
 
 
+from rmscene import scene_items as si
+def tree_structure(item):
+    if isinstance(item, si.Group):
+        return (
+            item.node_id,
+            (
+                item.label.value,
+                item.visible.value,
+                (
+                    item.anchor_id.value if item.anchor_id else None,
+                    item.anchor_type.value if item.anchor_type else None,
+                    item.anchor_threshold.value if item.anchor_threshold else None,
+                    item.anchor_origin_x.value if item.anchor_origin_x else None,
+                )
+            ),
+            [tree_structure(child) for child in item.children.values() if child],
+        )
+    else:
+        return item
+
+
 def convert_rm(filename: Path, to, fout):
     with open(filename, "rb") as f:
         if to == "blocks":
-            pprint_file(f, fout)
+            pprint_blocks(f, fout)
         elif to == "blocks-data":
-            pprint_file(f, fout, data=False)
+            pprint_blocks(f, fout, data=False)
+        elif to == "tree":
+            # Experimental dumping of tree structure
+            pprint_tree(f, fout, data=True)
+        elif to == "tree-data":
+            # Experimental dumping of tree structure
+            pprint_tree(f, fout, data=False)
         elif to == "markdown":
             print_text(f, fout)
         elif to == "svg":
@@ -116,13 +143,37 @@ def convert_rm(filename: Path, to, fout):
             raise click.UsageError("Unknown format %s" % to)
 
 
-def pprint_file(f, fout, data=True) -> None:
+def pprint_blocks(f, fout, data=True) -> None:
     import pprint
     depth = None if data else 1
     result = read_blocks(f)
     for el in result:
         print(file=fout)
         pprint.pprint(el, depth=depth, stream=fout)
+
+
+def pprint_tree(f, fout, data=True) -> None:
+    tree = read_tree(f)
+
+    import pprint
+    import re
+
+    def pprint_Line(self, object, stream, indent, allowance, context, level):
+        min_x = min(p.x for p in object.points)
+        min_y = min(p.y for p in object.points)
+        max_x = max(p.x for p in object.points)
+        max_y = max(p.y for p in object.points)
+        rep = re.sub(r"points=\[.*\]",
+                     f"points=[({min_x: 4.0f},{min_y: 4.0f})-({max_x: 4.0f},{max_y: 4.0f})]",
+                     repr(object))
+        stream.write(rep)
+
+    pprint.PrettyPrinter._dispatch[si.Line.__repr__] = pprint_Line
+
+    depth = None if data else 1
+    pprint.pprint(tree_structure(tree.root), stream=fout)
+    pprint.pprint(tree_structure(tree.root_text), depth=depth, stream=fout)
+
 
 
 def convert_text(text, fout):
