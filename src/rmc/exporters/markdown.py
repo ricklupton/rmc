@@ -1,19 +1,14 @@
 """Export text content of rm files as Markdown."""
 
-from rmscene import TextFormat, read_blocks
-from rmscene.text import extract_text_lines
-
+from rmscene import read_tree
 from rmscene import scene_items as si
-from rmscene.scene_tree import SceneTree
-from rmscene.scene_stream import build_tree
 
 import logging
 
 
 
 def print_text(f, fout):
-    tree = SceneTree()
-    build_tree(tree, read_blocks(f))
+    tree = read_tree(f)
 
     # Find out what anchor characters are used
     anchor_ids = set(collect_anchor_ids(tree.root))
@@ -24,7 +19,7 @@ def print_text(f, fout):
     JOIN_TOLERANCE = 2
     print("\n\n# Highlights", file=fout)
     last_pos = 0
-    for item in walk_items(tree.root):
+    for item in tree.walk():
         if isinstance(item, si.GlyphRange):
             if item.start > last_pos + JOIN_TOLERANCE:
                 print(file=fout)
@@ -34,17 +29,17 @@ def print_text(f, fout):
 
 
 def print_root_text(root_text, fout, anchor_ids):
-    for fmt, line, ids in extract_text_lines(root_text):
+    for fmt, line, ids in root_text.formatted_lines_with_ids():
         annotated_line = annotate_anchor_ids(anchor_ids, line, ids)
-        if fmt == TextFormat.BULLET:
+        if fmt == si.TextFormat.BULLET:
             fout.write("- " + annotated_line)
-        elif fmt == TextFormat.BULLET2:
+        elif fmt == si.TextFormat.BULLET2:
             fout.write("  + " + annotated_line)
-        elif fmt == TextFormat.BOLD:
+        elif fmt == si.TextFormat.BOLD:
             fout.write("> " + annotated_line)
-        elif fmt == TextFormat.HEADING:
+        elif fmt == si.TextFormat.HEADING:
             fout.write("# " + annotated_line)
-        elif fmt == TextFormat.PLAIN:
+        elif fmt == si.TextFormat.PLAIN:
             fout.write(annotated_line)
         else:
             fout.write(("[unknown format %s] " % fmt) + annotated_line)
@@ -58,14 +53,6 @@ def annotate_anchor_ids(anchor_ids, line, ids):
             result += f"<<{char_id.part1},{char_id.part2}>>"
         result += char
     return result
-
-
-def walk_items(item):
-    if isinstance(item, si.Group):
-        for child in item.children.values():
-            yield from walk_items(child)
-    else:
-        yield item
 
 
 def collect_anchor_ids(item):
