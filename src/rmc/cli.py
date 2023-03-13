@@ -98,7 +98,6 @@ def guess_format(p: Path):
 from rmscene import scene_items as si
 def tree_structure(item):
     if isinstance(item, si.Group):
-
         return (
             item.node_id,
             (
@@ -111,7 +110,7 @@ def tree_structure(item):
                     item.anchor_origin_x.value if item.anchor_origin_x else None,
                 )
             ),
-            [tree_structure(child) for child in item.children.values()],
+            [tree_structure(child) for child in item.children.values() if child],
         )
     else:
         return item
@@ -154,10 +153,7 @@ def pprint_blocks(f, fout, data=True) -> None:
 
 
 def pprint_tree(f, fout, data=True) -> None:
-    from rmscene.scene_tree import SceneTree
-    from rmscene.scene_stream import build_tree
-    tree = SceneTree()
-    build_tree(tree, read_blocks(f))
+    tree = read_tree(f)
 
     import pprint
     import re
