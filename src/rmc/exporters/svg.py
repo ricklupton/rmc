@@ -6,6 +6,7 @@ https://github.com/chemag/maxio .
 
 import logging
 import string
+from pathlib import Path
 
 from typing import Iterable
 
@@ -13,6 +14,7 @@ from rmscene import scene_items as si
 from rmscene import (
     read_tree,
     SceneTree,
+    CrdtId,
 )
 
 from .writing_tools import (
@@ -24,9 +26,12 @@ _logger = logging.getLogger(__name__)
 
 SCREEN_WIDTH = 1404
 SCREEN_HEIGHT = 1872
+SCREEN_DPI = 226
 
-PAGE_WIDTH_PT = 445
-SCALE = float(PAGE_WIDTH_PT) / SCREEN_WIDTH
+SCALE = 72.0 / SCREEN_DPI
+
+PAGE_WIDTH_PT = SCREEN_WIDTH * SCALE
+PAGE_HEIGHT_PT = SCREEN_HEIGHT * SCALE
 X_SHIFT = PAGE_WIDTH_PT // 2
 
 
@@ -38,11 +43,22 @@ def yy(screen_y):
     return screen_y * SCALE
 
 
+TEXT_TOP_Y = -88
 LINE_HEIGHTS = {
-    si.TextFormat.PLAIN: 70,
+    # Tuned this line height using template grid -- it definitely seems to be
+    # 71, rather than 70 or 72. Note however that it does interact a bit with
+    # the initial text y-coordinate below.
+    si.TextFormat.PLAIN: 71,
     si.TextFormat.BULLET: 35,
-    si.TextFormat.BOLD: 35,
-    si.TextFormat.HEADING: 70,
+    si.TextFormat.BOLD: 70,
+    si.TextFormat.HEADING: 150,
+
+    # There appears to be another format code (value 0) which is used when the
+    # text starts far down the page, which case it has a negative offset (line
+    # height) of about -20?
+    #
+    # Probably, actually, the line height should be added *after* the first
+    # line, but there is still something a bit odd going on here.
 }
 
 
@@ -51,7 +67,7 @@ LINE_HEIGHTS = {
 # <div style="border: 1px solid grey; margin: 2em; float: left;">
 # <svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width">
 SVG_HEADER = string.Template("""
-<svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width">
+<svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width" viewbox="$viewbox">
     <script type="application/ecmascript"> <![CDATA[
         var visiblePage = 'p1';
         function goToPage(page) {
@@ -71,15 +87,34 @@ def rm_to_svg(rm_path, svg_path):
         tree_to_svg(tree, outfile)
 
 
-def tree_to_svg(tree: SceneTree, output):
+def read_template_svg(template_path: Path) -> str:
+    lines = template_path.read_text().splitlines()
+    return "\n".join(lines[2:-1])
+
+
+def tree_to_svg(tree: SceneTree, output, include_template=None):
     """Convert Blocks to SVG."""
 
     # add svg header
-    output.write('<svg xmlns="http://www.w3.org/2000/svg">\n')
-    output.write(f'    <g id="p1" style="display:inline" transform="translate({X_SHIFT},100)">\n')
+    # output.write('<svg xmlns="http://www.w3.org/2000/svg">\n')
+    output.write(SVG_HEADER.substitute(width=PAGE_WIDTH_PT,
+                                       height=PAGE_HEIGHT_PT,
+                                       viewbox=f"0 0 {PAGE_WIDTH_PT} {PAGE_HEIGHT_PT}") + "\n")
+
+    if include_template is not None:
+        template = read_template_svg(include_template)
+        output.write(f'    <g id="template" style="display:inline" transform="scale({SCALE})">\n')
+        output.write(template)
+        output.write('    </g>\n')
+
+    output.write(f'    <g id="p1" style="display:inline" transform="translate({X_SHIFT},0)">\n')
     output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
 
-    anchor_pos = {}
+    # These special anchor IDs are for the top and bottom of the page.
+    anchor_pos = {
+        CrdtId(0, 281474976710654): 270,
+        CrdtId(0, 281474976710655): 700,
+    }
     if tree.root_text is not None:
         draw_text(tree.root_text, output, anchor_pos)
     _logger.debug("anchor_pos: %s", anchor_pos)
@@ -185,7 +220,7 @@ def draw_text(text: si.Text, output, anchor_pos):
     </style>
     ''')
 
-    y_offset = 0
+    y_offset = TEXT_TOP_Y
     for fmt, line, ids in text.formatted_lines_with_ids():
         y_offset += LINE_HEIGHTS[fmt]
 
