@@ -20,6 +20,7 @@ from rmscene import (
 from .writing_tools import (
     Pen,
 )
+from .font_info import wrap_text
 
 _logger = logging.getLogger(__name__)
 
@@ -222,17 +223,20 @@ def draw_text(text: si.Text, output, anchor_pos):
 
     y_offset = TEXT_TOP_Y
     for fmt, line, ids in text.formatted_lines_with_ids():
-        y_offset += LINE_HEIGHTS[fmt]
+        wrapped = wrap_text(line, text.width, "reMarkableSans-Regular", 11)
 
-        xpos = text.pos_x
-        ypos = text.pos_y + y_offset
-        cls = fmt.name.lower()
-        if line:
-            output.write(f'        <!-- Text line char_id: {ids[0]} -->\n')
-            output.write(f'        <text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{line.strip()}</text>\n')
+        for wrapped_line in wrapped:
+            y_offset += LINE_HEIGHTS[fmt]
 
-        # Save y-coordinates of potential anchors
-        for k in ids:
-            anchor_pos[k] = ypos
+            xpos = text.pos_x
+            ypos = text.pos_y + y_offset
+            cls = fmt.name.lower()
+            if line:
+                output.write(f'        <!-- Text line char_id: {ids[0]} -->\n')
+                output.write(f'        <text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{wrapped_line.strip()}</text>\n')
+
+            # Save y-coordinates of potential anchors
+            for k in ids:
+                anchor_pos[k] = ypos
 
     output.write('    </g>\n')
