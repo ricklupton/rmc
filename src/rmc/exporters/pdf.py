@@ -29,6 +29,16 @@ def svg_to_pdf(svg_file, pdf_file):
         fsvg.write(svg_file.read())
 
         # use inkscape to convert svg to pdf
-        check_call(["inkscape", fsvg.name, "--export-filename", fpdf.name])
+        try:
+            print("Convert SVG to PDF using Inkscape")
+            check_call(["inkscape", fsvg.name, "--export-filename", fpdf.name])
+        except FileNotFoundError:
+            print("Inkscape not found in path")
+
+        try:
+            print("Convert SVG to PDF using Inkscape (default MacOS path)")
+            check_call(["/Applications/Inkscape.app/Contents/MacOS/inkscape", fsvg.name, "--export-filename", fpdf.name])
+        except:
+            pass            
 
         pdf_file.write(fpdf.read())
