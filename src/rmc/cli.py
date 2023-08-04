@@ -6,8 +6,9 @@ import io
 from pathlib import Path
 from contextlib import contextmanager
 import click
-from rmscene import read_blocks, write_blocks, TextFormat
-from rmscene.text import extract_text, simple_text_document
+from rmscene.scene_stream import read_blocks, write_blocks, simple_text_document
+from rmscene.scene_items import ParagraphStyle
+
 from .exporters.svg import blocks_to_svg
 from .exporters.pdf import svg_to_pdf
 from .exporters.markdown import print_text
