@@ -180,14 +180,19 @@ def draw_text(block, output, svg_doc_info, debug):
     output.write('            }\n')
     output.write('        </style>\n')
 
-    for text_item in block.text_items:
-        # BEGIN text
-        # https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
-        xpos = block.pos_x + svg_doc_info.width / 2
-        ypos = block.pos_y + svg_doc_info.height / 2
-        output.write(f'        <!-- TextItem item_id: {text_item.item_id} -->\n')
-        if text_item.text.strip():
-            output.write(f'        <text x="{xpos}" y="{ypos}" class="default">{text_item.text.strip()}</text>\n')
+
+    sceneitem_text = block.value
+    text = "".join([i[1] for i in block.value.items.items()])
+    
+    # A way to come up with some unique_id
+    textid = ",".join([repr(i[0]) for i in block.value.items.items()])
+    
+    # BEGIN text
+    # https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
+    xpos = block.value.pos_x + svg_doc_info.width / 2
+    ypos = block.value.pos_y + svg_doc_info.height / 2
+    output.write(f'        <!-- TextItem item_id: {textid} -->\n')
+    output.write(f'        <text x="{xpos}" y="{ypos}" class="default">{text}</text>\n')
 
 
 def get_limits(blocks):
