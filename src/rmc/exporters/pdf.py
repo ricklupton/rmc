@@ -26,9 +26,10 @@ def rm_to_pdf(rm_path, pdf_path, debug=0):
 def svg_to_pdf(svg_file, pdf_file):
     """Read svg data from `svg_file` and write PDF data to `pdf_file`."""
 
-    with NamedTemporaryFile("wt", suffix=".svg") as fsvg, NamedTemporaryFile("rb", suffix=".pdf") as fpdf:
+    with NamedTemporaryFile("w", suffix=".svg") as fsvg, NamedTemporaryFile("rb", suffix=".pdf") as fpdf:
         fsvg.write(svg_file.read())
-
+        fsvg.flush() # Make sure content is writen to the file
+        
         # use inkscape to convert svg to pdf
         try:
             print("Convert SVG to PDF using Inkscape")
@@ -43,3 +44,4 @@ def svg_to_pdf(svg_file, pdf_file):
             pass            
 
         pdf_file.write(fpdf.read())
+        pdf_file.flush()
