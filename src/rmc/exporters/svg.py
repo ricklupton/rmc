@@ -108,17 +108,17 @@ def draw_stroke(block, output, svg_doc_info, debug):
     if debug > 0:
         print('----SceneLineItemBlock')
     # a SceneLineItemBlock contains a stroke
-    output.write(f'        <!-- SceneLineItemBlock item_id: {block.item_id} -->\n')
+    output.write(f'        <!-- SceneLineItemBlock item_id: {block.item.item_id} -->\n')
 
     # make sure the object is not empty
-    if block.value is None:
+    if block.item.value is None:
         return
 
     # initiate the pen
-    pen = Pen.create(block.value.tool.value, block.value.color.value, block.value.thickness_scale)
+    pen = Pen.create(block.item.value.tool.value, block.item.value.color.value, block.item.value.thickness_scale)
 
     # BEGIN stroke
-    output.write(f'        <!-- Stroke tool: {block.value.tool.name} color: {block.value.color.name} thickness_scale: {block.value.thickness_scale} -->\n')
+    output.write(f'        <!-- Stroke tool: {block.item.value.tool.name} color: {block.item.value.color.name} thickness_scale: {block.item.value.thickness_scale} -->\n')
     output.write('        <polyline ')
     output.write(f'style="fill:none;stroke:{pen.stroke_color};stroke-width:{pen.stroke_width};opacity:{pen.stroke_opacity}" ')
     output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
@@ -128,7 +128,7 @@ def draw_stroke(block, output, svg_doc_info, debug):
     last_ypos = -1.
     last_segment_width = 0
     # Iterate through the point to form a polyline
-    for point_id, point in enumerate(block.value.points):
+    for point_id, point in enumerate(block.item.value.points):
         # align the original position
         xpos = point.x + svg_doc_info.xpos_delta
         ypos = point.y + svg_doc_info.ypos_delta
@@ -180,14 +180,19 @@ def draw_text(block, output, svg_doc_info, debug):
     output.write('            }\n')
     output.write('        </style>\n')
 
-    for text_item in block.text_items:
-        # BEGIN text
-        # https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
-        xpos = block.pos_x + svg_doc_info.width / 2
-        ypos = block.pos_y + svg_doc_info.height / 2
-        output.write(f'        <!-- TextItem item_id: {text_item.item_id} -->\n')
-        if text_item.text.strip():
-            output.write(f'        <text x="{xpos}" y="{ypos}" class="default">{text_item.text.strip()}</text>\n')
+
+    sceneitem_text = block.value
+    text = "".join([i[1] for i in block.value.items.items()])
+    
+    # A way to come up with some unique_id
+    textid = ",".join([repr(i[0]) for i in block.value.items.items()])
+    
+    # BEGIN text
+    # https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
+    xpos = block.value.pos_x + svg_doc_info.width / 2
+    ypos = block.value.pos_y + svg_doc_info.height / 2
+    output.write(f'        <!-- TextItem item_id: {textid} -->\n')
+    output.write(f'        <text x="{xpos}" y="{ypos}" class="default">{text}</text>\n')
 
 
 def get_limits(blocks):
@@ -216,11 +221,12 @@ def get_limits(blocks):
 
 def get_limits_stroke(block):
     # make sure the object is not empty
-    if block.value is None:
+
+    if block.item.value is None:
         return None, None, None, None
     xmin = xmax = None
     ymin = ymax = None
-    for point in block.value.points:
+    for point in block.item.value.points:
         xpos, ypos = point.x, point.y
         if xmin is None or xmin > xpos:
             xmin = xpos
