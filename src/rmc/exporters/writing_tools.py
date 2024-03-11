@@ -121,7 +121,10 @@ class Pen:
 class Fineliner(Pen):
     def __init__(self, base_width, base_color_id):
         super().__init__(base_width, base_color_id)
-        self.base_width = (base_width ** 2.1) * 1.3
+        if   base_width == 1: self.base_width = 1.5
+        elif base_width == 2: self.base_width = 4.0
+        elif base_width == 3: self.base_width = 6.0
+        else: self.base_width = (base_width ** 2.1) * 1.3
         self.name = "Fineliner"
 
 
