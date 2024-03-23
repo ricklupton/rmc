@@ -20,9 +20,8 @@ remarkable_palette = {
     1: [125, 125, 125],
     # WHITE = 2
     2: [255, 255, 255],
-    # https://www.color-name.com/highlighter-yellow.color
     # YELLOW = 3
-    3: [251, 247, 25],
+    3: [255, 255, 99],
     # GREEN = 4
     4: [0, 255, 0],
     # PINK = 5
