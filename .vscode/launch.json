@@ -1,0 +1,17 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/rmc/cli.py",
+            "args": ["/home/rob/Dropbox/reMarkable/xochitl/29b36d85-0318-4162-82e6-20be5ac2363f/668493a4-3959-4bbe-9e69-9c7b8ab034c7.rm",
+                    "-o", "/tmp/tmp.oyxSeaWZWE/p2.svg"],
+            "console": "integratedTerminal"
+        }
+    ]
+}
