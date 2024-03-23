@@ -77,6 +77,26 @@ def blocks_to_svg(blocks: Iterable[Block], output, debug=0):
     # get document dimensions
     svg_doc_info = get_dimensions(blocks, debug)
 
+    firstBlocks = []
+    secondBlocks = []
+
+    for block in blocks:
+        if isinstance(block, SceneLineItemBlock):
+            if block.value is not None:
+            # check if it's a highlighter block
+                if block.value.tool.name.startswith("HIGHLIGHTER"):
+                    # put it in the first blocks
+                    firstBlocks.append(block)
+                    continue
+            
+            secondBlocks.append(block)
+
+        elif isinstance(block, RootTextBlock):
+            secondBlocks.append(block)
+        else:
+            if debug > 0:
+                print(f'warning: not converting block: {block.__class__}')
+
     # add svg header
     output.write(SVG_HEADER.substitute(height=svg_doc_info.height, width=svg_doc_info.width))
     output.write('\n')
@@ -85,14 +105,13 @@ def blocks_to_svg(blocks: Iterable[Block], output, debug=0):
     output.write('    <g id="p1" style="display:inline">\n')
     output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
 
-    for block in blocks:
-        if isinstance(block, SceneLineItemBlock):
-            draw_stroke(block, output, svg_doc_info, debug)
-        elif isinstance(block, RootTextBlock):
-            draw_text(block, output, svg_doc_info, debug)
-        else:
-            if debug > 0:
-                print(f'warning: not converting block: {block.__class__}')
+    for blockGroup in [firstBlocks, secondBlocks]:
+        for block in blockGroup:
+            if isinstance(block, SceneLineItemBlock):
+                draw_stroke(block, output, svg_doc_info, debug)
+            elif isinstance(block, RootTextBlock):
+                draw_text(block, output, svg_doc_info, debug)
+
 
     # Overlay the page with a clickable rect to flip pages
     output.write('\n')
