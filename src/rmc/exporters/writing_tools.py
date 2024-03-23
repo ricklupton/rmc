@@ -26,8 +26,7 @@ remarkable_palette = {
     # GREEN = 4
     4: [0, 255, 0],
     # PINK = 5
-    # https://www.rapidtables.com/web/color/pink-color.html
-    5: [255, 192, 203],
+    5: [255, 20, 147],
     # BLUE = 6
     6: [0, 0, 255],
     # RED = 7
