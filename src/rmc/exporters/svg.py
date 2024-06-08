@@ -35,7 +35,7 @@ _logger = logging.getLogger(__name__)
 SCREEN_WIDTH = 1404
 SCREEN_HEIGHT = 1872
 
-SVG_HEADER = string.Template("""
+SVG_HEADER = string.Template("""<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width">
     <script type="application/ecmascript"> <![CDATA[
         var visiblePage = 'p1';
