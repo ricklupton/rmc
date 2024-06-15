@@ -109,8 +109,8 @@ def convert_rm(filename: Path, to, fout):
             blocks_to_svg(blocks, fout)
         elif to == "pdf":
             buf = io.StringIO()
-            blocks = read_blocks(f)
-            blocks_to_svg(blocks, buf)
+            tree = read_tree(f)
+            tree_to_svg(tree, buf)
             buf.seek(0)
             svg_to_pdf(buf, fout)
         else:
