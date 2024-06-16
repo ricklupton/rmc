@@ -12,8 +12,19 @@ def print_text(f, fout):
     if tree.root_text:
         print_root_text(tree.root_text, fout)
 
+    JOIN_TOLERANCE = 2
+    print("\n\n# Highlights", file=fout)
+    last_pos = 0
+    for item in tree.walk():
+        if isinstance(item, si.GlyphRange):
+            if item.start > last_pos + JOIN_TOLERANCE:
+                print(file=fout)
+            print(">", item.text, file=fout)
+            last_pos = item.start + len(item.text)
+    print(file=fout)
 
-def print_root_text(root_text: si.Text, fout):
+
+def print_root_text(root_text: si.Text, fout, anchor_ids):
     doc = TextDocument.from_scene_item(root_text)
     for p in doc.contents:
         line = str(p)
