@@ -53,6 +53,7 @@ LINE_HEIGHTS = {
     # line, but there is still something a bit odd going on here.
 }
 
+# TODO why is the script for?
 SVG_HEADER = string.Template("""<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width" viewBox="$viewbox">
     <script type="application/ecmascript"> <![CDATA[
@@ -79,13 +80,42 @@ def read_template_svg(template_path: Path) -> str:
     return "\n".join(lines[2:-1])
 
 
+def get_bounding_box(item: si.Group) -> (int, int, int, int):
+    x_min, x_max, y_min, y_max = -X_SHIFT, -X_SHIFT + PAGE_WIDTH_PT, 0, PAGE_HEIGHT_PT
+
+    for child_id in item.children:
+        child = item.children[child_id]
+        if isinstance(child, si.Group):
+            x_min_t, x_max_t, y_min_t, y_max_t = get_bounding_box(child)
+            x_min = min(x_min, x_min_t)
+            x_max = max(x_max, x_max_t)
+            y_min = min(y_min, y_min_t)
+            y_max = max(y_max, y_max_t)
+        elif isinstance(child, si.Line):
+            x_min = min([x_min] + [p.x for p in child.points])
+            x_max = max([x_max] + [p.x for p in child.points])
+            y_min = min([y_min] + [p.y for p in child.points])
+            y_max = max([y_max] + [p.y for p in child.points])
+
+    return x_min, x_max, y_min, y_max
+
+
 def tree_to_svg(tree: SceneTree, output, include_template=None):
     """Convert Blocks to SVG."""
 
+    # find the extremum along x and y
+    x_min, x_max, y_min, y_max = get_bounding_box(tree.root)
+    width_pt = xx(x_max - x_min + 1)
+    height_pt = yy(y_max - y_min + 1)
+    _logger.debug("x_min: %.1f, x_max: %.1f, y_min: %.1f, y_max: %.1f",
+                  x_min, x_max, y_min, y_max)
+    _logger.debug("scalded x_min: %.1f, x_max: %.1f, y_min: %.1f, y_max: %.1f",
+                  xx(x_min), xx(x_max), yy(y_min), yy(y_max))
+
     # add svg header
-    output.write(SVG_HEADER.substitute(width=PAGE_WIDTH_PT,
-                                       height=PAGE_HEIGHT_PT,
-                                       viewbox=f"0 0 {PAGE_WIDTH_PT} {PAGE_HEIGHT_PT}") + "\n")
+    output.write(SVG_HEADER.substitute(width=width_pt,
+                                       height=height_pt,
+                                       viewbox=f"{xx(x_min)} {yy(y_min)} {width_pt} {height_pt}") + "\n")
 
     if include_template is not None:
         template = read_template_svg(include_template)
@@ -93,7 +123,7 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
         output.write(template)
         output.write('    </g>\n')
 
-    output.write(f'    <g id="p1" style="display:inline" transform="translate({X_SHIFT},0)">\n')
+    output.write(f'    <g id="p1" style="display:inline">\n')
     output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
 
     # These special anchor IDs are for the top and bottom of the page.
@@ -139,6 +169,7 @@ def draw_group(item: si.Group, output, anchor_pos):
 def draw_stroke(item: si.Line, output):
     _logger.debug("Writing line: %s", item)
 
+    # TODO check if pen.stroke_width is close to real size on remarkable
     # initiate the pen
     pen = Pen.create(item.tool.value, item.color.value, item.thickness_scale)
 
