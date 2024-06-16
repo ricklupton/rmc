@@ -6,6 +6,7 @@ https://github.com/chemag/maxio .
 
 import logging
 import string
+from pathlib import Path
 
 from rmscene import read_tree, SceneTree, CrdtId
 from rmscene import scene_items as si
@@ -73,13 +74,24 @@ def rm_to_svg(rm_path, svg_path):
         tree_to_svg(tree, outfile)
 
 
-def tree_to_svg(tree: SceneTree, output):
+def read_template_svg(template_path: Path) -> str:
+    lines = template_path.read_text().splitlines()
+    return "\n".join(lines[2:-1])
+
+
+def tree_to_svg(tree: SceneTree, output, include_template=None):
     """Convert Blocks to SVG."""
 
     # add svg header
     output.write(SVG_HEADER.substitute(width=PAGE_WIDTH_PT,
                                        height=PAGE_HEIGHT_PT,
                                        viewbox=f"0 0 {PAGE_WIDTH_PT} {PAGE_HEIGHT_PT}") + "\n")
+
+    if include_template is not None:
+        template = read_template_svg(include_template)
+        output.write(f'    <g id="template" style="display:inline" transform="scale({SCALE})">\n')
+        output.write(template)
+        output.write('    </g>\n')
 
     output.write(f'    <g id="p1" style="display:inline" transform="translate({X_SHIFT},0)">\n')
     output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
