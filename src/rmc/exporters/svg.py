@@ -180,18 +180,22 @@ def draw_text(text: si.Text, output, anchor_pos):
     ''')
 
     y_offset = TEXT_TOP_Y
-    for fmt, line, ids in text.formatted_lines_with_ids():
-        y_offset += LINE_HEIGHTS[fmt]
+
+    doc = TextDocument.from_scene_item(text)
+    for p in doc.contents:
+        y_offset += LINE_HEIGHTS[p.style.value]
 
         xpos = text.pos_x
         ypos = text.pos_y + y_offset
-        cls = fmt.name.lower()
-        if line:
-            output.write(f'        <!-- Text line char_id: {ids[0]} -->\n')
-            output.write(f'        <text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{line.strip()}</text>\n')
+        cls = p.style.value.name.lower()
+        if str(p):
+            # TODO: this doesn't take into account the CrdtStr.properties (font-weight/font-style)
+            output.write(f'        <!-- Text line char_id: {p.start_id} -->\n')
+            output.write(f'        <text x="{xpos}" y="{ypos}" class="{cls}">{str(p).strip()}</text>\n')
 
         # Save y-coordinates of potential anchors
-        for k in ids:
-            anchor_pos[k] = ypos
+        for subp in p.contents:
+            for k in subp.i:
+                anchor_pos[k] = ypos
 
     output.write('    </g>\n')
