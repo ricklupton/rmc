@@ -17,7 +17,22 @@ _logger = logging.getLogger(__name__)
 
 SCREEN_WIDTH = 1404
 SCREEN_HEIGHT = 1872
-X_SHIFT = SCREEN_WIDTH // 2
+SCREEN_DPI = 226
+
+SCALE = 72.0 / SCREEN_DPI
+
+PAGE_WIDTH_PT = SCREEN_WIDTH * SCALE
+PAGE_HEIGHT_PT = SCREEN_HEIGHT * SCALE
+X_SHIFT = PAGE_WIDTH_PT // 2
+
+
+def xx(screen_x):
+    return screen_x * SCALE  # + X_SHIFT
+
+
+def yy(screen_y):
+    return screen_y * SCALE
+
 
 TEXT_TOP_Y = -88
 LINE_HEIGHTS = {
@@ -62,9 +77,9 @@ def tree_to_svg(tree: SceneTree, output):
     """Convert Blocks to SVG."""
 
     # add svg header
-    output.write(SVG_HEADER.substitute(width=SCREEN_WIDTH,
-                                       height=SCREEN_HEIGHT,
-                                       viewbox=f"0 0 {SCREEN_WIDTH} {SCREEN_HEIGHT}") + "\n")
+    output.write(SVG_HEADER.substitute(width=PAGE_WIDTH_PT,
+                                       height=PAGE_HEIGHT_PT,
+                                       viewbox=f"0 0 {PAGE_WIDTH_PT} {PAGE_HEIGHT_PT}") + "\n")
 
     output.write(f'    <g id="p1" style="display:inline" transform="translate({X_SHIFT},0)">\n')
     output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
@@ -97,7 +112,7 @@ def draw_group(item: si.Group, output, anchor_pos):
             _logger.debug("Group anchor: %s -> y=%.1f", item.anchor_id.value, anchor_y)
         else:
             _logger.warning("Group anchor: %s is unknown!", item.anchor_id.value)
-    output.write(f'    <g id="{item.node_id}" transform="translate({anchor_x}, {anchor_y})">\n')
+    output.write(f'    <g id="{item.node_id}" transform="translate({xx(anchor_x)}, {yy(anchor_y)})">\n')
     for child_id in item.children:
         child = item.children[child_id]
         _logger.debug("Group child: %s %s", child_id, type(child))
@@ -148,14 +163,14 @@ def draw_stroke(item: si.Line, output):
             output.write('points="')
             if last_xpos != -1.:
                 # Join to previous segment
-                output.write(f'{last_xpos:.3f},{last_ypos:.3f} ')
+                output.write(f'{xx(last_xpos):.3f},{yy(last_ypos):.3f} ')
         # store the last position
         last_xpos = xpos
         last_ypos = ypos
         last_segment_width = segment_width
 
         # BEGIN and END polyline segment
-        output.write(f'{xpos:.3f},{ypos:.3f} ')
+        output.write(f'{xx(xpos):.3f},{yy(ypos):.3f} ')
 
     # END stroke
     output.write('" />\n')
@@ -191,7 +206,7 @@ def draw_text(text: si.Text, output, anchor_pos):
         if str(p):
             # TODO: this doesn't take into account the CrdtStr.properties (font-weight/font-style)
             output.write(f'        <!-- Text line char_id: {p.start_id} -->\n')
-            output.write(f'        <text x="{xpos}" y="{ypos}" class="{cls}">{str(p).strip()}</text>\n')
+            output.write(f'        <text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{str(p).strip()}</text>\n')
 
         # Save y-coordinates of potential anchors
         for subp in p.contents:
