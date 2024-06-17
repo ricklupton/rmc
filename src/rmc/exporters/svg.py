@@ -53,18 +53,8 @@ LINE_HEIGHTS = {
     # line, but there is still something a bit odd going on here.
 }
 
-# TODO why is the script for?
 SVG_HEADER = string.Template("""<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width" viewBox="$viewbox">
-    <script type="application/ecmascript"> <![CDATA[
-        var visiblePage = 'p1';
-        function goToPage(page) {
-            document.getElementById(visiblePage).setAttribute('style', 'display: none');
-            document.getElementById(page).setAttribute('style', 'display: inline');
-            visiblePage = page;
-        }
-    ]]>
-    </script>
 """)
 
 
