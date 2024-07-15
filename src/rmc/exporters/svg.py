@@ -133,7 +133,7 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
     output.write('</svg>\n')
 
 
-def draw_group(item: si.Group, output, anchor_pos):
+def get_anchor(item: si.Group, anchor_pos):
     anchor_x = 0.0
     anchor_y = 0.0
     if item.anchor_id is not None:
@@ -141,9 +141,18 @@ def draw_group(item: si.Group, output, anchor_pos):
         anchor_x = item.anchor_origin_x.value
         if item.anchor_id.value in anchor_pos:
             anchor_y = anchor_pos[item.anchor_id.value]
-            _logger.debug("Group anchor: %s -> y=%.1f", item.anchor_id.value, anchor_y)
+            _logger.debug("Group anchor: %s -> y=%.1f (scalded y=%.1f)",
+                          item.anchor_id.value,
+                          anchor_y,
+                          yy(anchor_y))
         else:
             _logger.warning("Group anchor: %s is unknown!", item.anchor_id.value)
+
+    return anchor_x, anchor_y
+
+
+def draw_group(item: si.Group, output, anchor_pos):
+    anchor_x, anchor_y = get_anchor(item, anchor_pos)
     output.write(f'    <g id="{item.node_id}" transform="translate({xx(anchor_x)}, {yy(anchor_y)})">\n')
     for child_id in item.children:
         child = item.children[child_id]
