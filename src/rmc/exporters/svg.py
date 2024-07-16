@@ -7,6 +7,7 @@ https://github.com/chemag/maxio .
 import logging
 import string
 from pathlib import Path
+from typing import Dict
 
 from rmscene import read_tree, SceneTree, CrdtId
 from rmscene import scene_items as si
@@ -70,37 +71,15 @@ def read_template_svg(template_path: Path) -> str:
     return "\n".join(lines[2:-1])
 
 
-def get_bounding_box(item: si.Group) -> (int, int, int, int):
-    """
-    Get the bounding box of the given item.
-    The minimum size is the default size of the screen.
-
-    :return: x_min, x_max, y_min, y_max: the bounding box in screen units (need to be scalded using xx and yy functions)
-    """
-    x_min, x_max, y_min, y_max = - SCREEN_WIDTH // 2, SCREEN_WIDTH // 2, 0, SCREEN_HEIGHT
-
-    for child_id in item.children:
-        child = item.children[child_id]
-        if isinstance(child, si.Group):
-            x_min_t, x_max_t, y_min_t, y_max_t = get_bounding_box(child)
-            x_min = min(x_min, x_min_t)
-            x_max = max(x_max, x_max_t)
-            y_min = min(y_min, y_min_t)
-            y_max = max(y_max, y_max_t)
-        elif isinstance(child, si.Line):
-            x_min = min([x_min] + [p.x for p in child.points])
-            x_max = max([x_max] + [p.x for p in child.points])
-            y_min = min([y_min] + [p.y for p in child.points])
-            y_max = max([y_max] + [p.y for p in child.points])
-
-    return x_min, x_max, y_min, y_max
-
-
 def tree_to_svg(tree: SceneTree, output, include_template=None):
     """Convert Blocks to SVG."""
 
+    # find the anchor pos for further use
+    anchor_pos = build_anchor_pos(tree.root_text)
+    _logger.debug("anchor_pos: %s", anchor_pos)
+
     # find the extremum along x and y
-    x_min, x_max, y_min, y_max = get_bounding_box(tree.root)
+    x_min, x_max, y_min, y_max = get_bounding_box(tree.root, anchor_pos)
     width_pt = xx(x_max - x_min + 1)
     height_pt = yy(y_max - y_min + 1)
     _logger.debug("x_min: %.1f, x_max: %.1f, y_min: %.1f, y_max: %.1f",
@@ -122,13 +101,8 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
     output.write(f'    <g id="p1" style="display:inline">\n')
     output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
 
-    anchor_pos = {
-        CrdtId(0, 281474976710654): 100,
-        CrdtId(0, 281474976710655): 130,
-    }
     if tree.root_text is not None:
-        draw_text(tree.root_text, output, anchor_pos)
-    _logger.debug("anchor_pos: %s", anchor_pos)
+        draw_text(tree.root_text, output)
 
     draw_group(tree.root, output, anchor_pos)
 
@@ -136,6 +110,32 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
     output.write('    </g>\n')
     # END notebook
     output.write('</svg>\n')
+
+
+def build_anchor_pos(text: si.Text | None) -> Dict[CrdtId, int]:
+    """
+    Find the anchor pos
+
+    :param text: the root text of the remarkable file
+    """
+    # Special anchors adjusted based on pen_size_test.strokes.rm
+    anchor_pos = {
+        CrdtId(0, 281474976710654): 100,
+        CrdtId(0, 281474976710655): 130,
+    }
+
+    if text is not None:
+        # Save anchor from text
+        doc = TextDocument.from_scene_item(text)
+        for p in doc.contents:
+            ypos = text.pos_y + TEXT_TOP_Y
+
+            anchor_pos[p.start_id] = ypos
+            for subp in p.contents:
+                for k in subp.i:
+                    anchor_pos[k] = ypos  # TODO check these anchor are used
+
+    return anchor_pos
 
 
 def get_anchor(item: si.Group, anchor_pos):
@@ -154,6 +154,33 @@ def get_anchor(item: si.Group, anchor_pos):
             _logger.warning("Group anchor: %s is unknown!", item.anchor_id.value)
 
     return anchor_x, anchor_y
+
+
+def get_bounding_box(item: si.Group, anchor_pos: Dict[CrdtId, int]) -> (int, int, int, int):
+    """
+    Get the bounding box of the given item.
+    The minimum size is the default size of the screen.
+
+    :return: x_min, x_max, y_min, y_max: the bounding box in screen units (need to be scalded using xx and yy functions)
+    """
+    x_min, x_max, y_min, y_max = - SCREEN_WIDTH // 2, SCREEN_WIDTH // 2, 0, SCREEN_HEIGHT
+
+    for child_id in item.children:
+        child = item.children[child_id]
+        if isinstance(child, si.Group):
+            anchor_x, anchor_y = get_anchor(child, anchor_pos)
+            x_min_t, x_max_t, y_min_t, y_max_t = get_bounding_box(child, anchor_pos)
+            x_min = min(x_min, x_min_t + anchor_x)
+            x_max = max(x_max, x_max_t + anchor_x)
+            y_min = min(y_min, y_min_t + anchor_y)
+            y_max = max(y_max, y_max_t + anchor_y)
+        elif isinstance(child, si.Line):
+            x_min = min([x_min] + [p.x for p in child.points])
+            x_max = max([x_max] + [p.x for p in child.points])
+            y_min = min([y_min] + [p.y for p in child.points])
+            y_max = max([y_max] + [p.y for p in child.points])
+
+    return x_min, x_max, y_min, y_max
 
 
 def draw_group(item: si.Group, output, anchor_pos):
@@ -253,10 +280,4 @@ def draw_text(text: si.Text, output, anchor_pos):
             # TODO: this doesn't take into account the CrdtStr.properties (font-weight/font-style)
             output.write(f'        <!-- Text line char_id: {p.start_id} -->\n')
             output.write(f'        <text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{str(p).strip()}</text>\n')
-
-        # Save y-coordinates of potential anchors
-        for subp in p.contents:
-            for k in subp.i:
-                anchor_pos[k] = ypos
-
     output.write('    </g>\n')
