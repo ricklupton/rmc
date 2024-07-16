@@ -122,10 +122,9 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
     output.write(f'    <g id="p1" style="display:inline">\n')
     output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
 
-    # These special anchor IDs are for the top and bottom of the page.
     anchor_pos = {
-        CrdtId(0, 281474976710654): 270,
-        CrdtId(0, 281474976710655): 700,
+        CrdtId(0, 281474976710654): 100,
+        CrdtId(0, 281474976710655): 130,
     }
     if tree.root_text is not None:
         draw_text(tree.root_text, output, anchor_pos)
