@@ -71,7 +71,13 @@ def read_template_svg(template_path: Path) -> str:
 
 
 def get_bounding_box(item: si.Group) -> (int, int, int, int):
-    x_min, x_max, y_min, y_max = -X_SHIFT, -X_SHIFT + PAGE_WIDTH_PT, 0, PAGE_HEIGHT_PT
+    """
+    Get the bounding box of the given item.
+    The minimum size is the default size of the screen.
+
+    :return: x_min, x_max, y_min, y_max: the bounding box in screen units (need to be scalded using xx and yy functions)
+    """
+    x_min, x_max, y_min, y_max = - SCREEN_WIDTH // 2, SCREEN_WIDTH // 2, 0, SCREEN_HEIGHT
 
     for child_id in item.children:
         child = item.children[child_id]
