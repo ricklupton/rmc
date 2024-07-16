@@ -120,7 +120,7 @@ class Pen:
 
 class Fineliner(Pen):
     def __init__(self, base_width, base_color_id):
-        super().__init__("Fineliner", (base_width ** 2.1) * 1.3, base_color_id)
+        super().__init__("Fineliner", base_width * 1.8, base_color_id)
 
 
 class Ballpoint(Pen):
@@ -137,7 +137,7 @@ class Ballpoint(Pen):
         intensity = clamp(intensity)
         # using segment color not opacity because the dots interfere with each other.
         # Color must be 255 rgb
-        segment_color = [int(abs(intensity - 1) * 255)] * 3
+        segment_color = [min(int(abs(intensity - 1) * 255), 60)] * 3
         return "rgb" + str(tuple(segment_color))
 
     # def get_segment_opacity(self, speed, direction, width, pressure, last_width):

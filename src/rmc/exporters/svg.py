@@ -27,13 +27,13 @@ PAGE_HEIGHT_PT = SCREEN_HEIGHT * SCALE
 X_SHIFT = PAGE_WIDTH_PT // 2
 
 
-def xx(screen_x):
-    return screen_x * SCALE  # + X_SHIFT
+def scale(screen_unit: float) -> float:
+    return screen_unit * SCALE
 
 
-def yy(screen_y):
-    return screen_y * SCALE
-
+# For now, at least, the xx and yy function are identical to scale
+xx = scale
+yy = scale
 
 TEXT_TOP_Y = -88
 LINE_HEIGHTS = {
@@ -173,7 +173,6 @@ def draw_group(item: si.Group, output, anchor_pos):
 def draw_stroke(item: si.Line, output):
     _logger.debug("Writing line: %s", item)
 
-    # TODO check if pen.stroke_width is close to real size on remarkable
     # initiate the pen
     pen = Pen.create(item.tool.value, item.color.value, item.thickness_scale)
 
@@ -182,7 +181,7 @@ def draw_stroke(item: si.Line, output):
                  f'color: {item.color.name} thickness_scale: {item.thickness_scale} -->\n')
     output.write('        <polyline ')
     output.write(f'style="fill:none;stroke:{pen.stroke_color};'
-                 f'stroke-width:{pen.stroke_width};opacity:{pen.stroke_opacity}" ')
+                 f'stroke-width:{scale(pen.stroke_width)};opacity:{pen.stroke_opacity}" ')
     output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
     output.write('points="')
 
@@ -205,7 +204,7 @@ def draw_stroke(item: si.Line, output):
             output.write('"/>\n')
             output.write('        <polyline ')
             output.write(f'style="fill:none; stroke:{segment_color}; '
-                         f'stroke-width:{segment_width:.3f}; opacity:{segment_opacity}" ')
+                         f'stroke-width:{scale(segment_width):.3f}; opacity:{segment_opacity}" ')
             output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
             output.write('points="')
             if last_xpos != -1.:
