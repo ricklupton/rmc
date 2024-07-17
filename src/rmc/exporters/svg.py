@@ -96,7 +96,6 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
         output.write('\t</g>\n')
 
     output.write(f'\t<g id="p1" style="display:inline">\n')
-    output.write('\t\t<filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
 
     if tree.root_text is not None:
         draw_text(tree.root_text, output)
@@ -196,20 +195,14 @@ def draw_group(item: si.Group, output, anchor_pos):
 
 
 def draw_stroke(item: si.Line, output):
-    _logger.debug("Writing line: %s", item)
+    # print debug infos
+    if _logger.root.level == logging.DEBUG:
+        _logger.debug("Writing line: %s", item)
+        output.write(f'\t\t\t<!-- Stroke tool: {item.tool.name} '
+                     f'color: {item.color.name} thickness_scale: {item.thickness_scale} -->\n')
 
     # initiate the pen
     pen = Pen.create(item.tool.value, item.color.value, item.thickness_scale)
-
-    # BEGIN stroke
-    if _logger.root.level == logging.DEBUG:
-        output.write(f'\t\t\t<!-- Stroke tool: {item.tool.name} '
-                     f'color: {item.color.name} thickness_scale: {item.thickness_scale} -->\n')
-    output.write('\t\t\t<polyline ')
-    output.write(f'style="fill:none;stroke:{pen.stroke_color};'
-                 f'stroke-width:{scale(pen.stroke_width)};opacity:{pen.stroke_opacity}" ')
-    output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
-    output.write('points="')
 
     last_xpos = -1.
     last_ypos = -1.
@@ -220,14 +213,17 @@ def draw_stroke(item: si.Line, output):
         xpos = point.x
         ypos = point.y
         if point_id % pen.segment_length == 0:
+            # if there was a previous segment, end it
+            if last_xpos != -1.:
+                output.write('"/>\n')
+
             segment_color = pen.get_segment_color(point.speed, point.direction, point.width, point.pressure,
                                                   last_segment_width)
             segment_width = pen.get_segment_width(point.speed, point.direction, point.width, point.pressure,
                                                   last_segment_width)
             segment_opacity = pen.get_segment_opacity(point.speed, point.direction, point.width, point.pressure,
                                                       last_segment_width)
-            # UPDATE stroke
-            output.write('"/>\n')
+            # create the next segment of the stroke
             output.write('\t\t\t<polyline ')
             output.write(f'style="fill:none; stroke:{segment_color}; '
                          f'stroke-width:{scale(segment_width):.3f}; opacity:{segment_opacity}" ')
@@ -241,10 +237,10 @@ def draw_stroke(item: si.Line, output):
         last_ypos = ypos
         last_segment_width = segment_width
 
-        # BEGIN and END polyline segment
+        # add current point
         output.write(f'{xx(xpos):.3f},{yy(ypos):.3f} ')
 
-    # END stroke
+    # end stroke
     output.write('" />\n')
 
 
@@ -281,4 +277,3 @@ def draw_text(text: si.Text, output):
                 output.write(f'\t\t\t<!-- Text line char_id: {p.start_id} -->\n')
             output.write(f'\t\t\t<text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{str(p).strip()}</text>\n')
     output.write('\t\t</g>\n')
-
