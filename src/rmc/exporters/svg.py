@@ -55,8 +55,7 @@ LINE_HEIGHTS = {
 }
 
 SVG_HEADER = string.Template("""<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width" viewBox="$viewbox">
-""")
+<svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width" viewBox="$viewbox">""")
 
 
 def rm_to_svg(rm_path, svg_path):
@@ -82,10 +81,8 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
     x_min, x_max, y_min, y_max = get_bounding_box(tree.root, anchor_pos)
     width_pt = xx(x_max - x_min + 1)
     height_pt = yy(y_max - y_min + 1)
-    _logger.debug("x_min: %.1f, x_max: %.1f, y_min: %.1f, y_max: %.1f",
-                  x_min, x_max, y_min, y_max)
-    _logger.debug("scalded x_min: %.1f, x_max: %.1f, y_min: %.1f, y_max: %.1f",
-                  xx(x_min), xx(x_max), yy(y_min), yy(y_max))
+    _logger.debug("x_min, x_max, y_min, y_max: %.1f, %.1f, %.1f, %.1f ; scalded %.1f, %.1f, %.1f, %.1f",
+                  x_min, x_max, y_min, y_max, xx(x_min), xx(x_max), yy(y_min), yy(y_max))
 
     # add svg header
     output.write(SVG_HEADER.substitute(width=width_pt,
@@ -94,12 +91,12 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
 
     if include_template is not None:
         template = read_template_svg(include_template)
-        output.write(f'    <g id="template" style="display:inline" transform="scale({SCALE})">\n')
+        output.write(f'\t<g id="template" style="display:inline" transform="scale({SCALE})">\n')
         output.write(template)
-        output.write('    </g>\n')
+        output.write('\t</g>\n')
 
-    output.write(f'    <g id="p1" style="display:inline">\n')
-    output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
+    output.write(f'\t<g id="p1" style="display:inline">\n')
+    output.write('\t\t<filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
 
     if tree.root_text is not None:
         draw_text(tree.root_text, output)
@@ -107,7 +104,7 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
     draw_group(tree.root, output, anchor_pos)
 
     # Closing page group
-    output.write('    </g>\n')
+    output.write('\t</g>\n')
     # END notebook
     output.write('</svg>\n')
 
@@ -185,16 +182,17 @@ def get_bounding_box(item: si.Group, anchor_pos: Dict[CrdtId, int]) -> (int, int
 
 def draw_group(item: si.Group, output, anchor_pos):
     anchor_x, anchor_y = get_anchor(item, anchor_pos)
-    output.write(f'    <g id="{item.node_id}" transform="translate({xx(anchor_x)}, {yy(anchor_y)})">\n')
+    output.write(f'\t\t<g id="{item.node_id}" transform="translate({xx(anchor_x)}, {yy(anchor_y)})">\n')
     for child_id in item.children:
         child = item.children[child_id]
         _logger.debug("Group child: %s %s", child_id, type(child))
-        output.write(f'    <!-- child {child_id} -->\n')
+        if _logger.root.level == logging.DEBUG:
+            output.write(f'\t\t<!-- child {child_id} {type(child)} -->\n')
         if isinstance(child, si.Group):
             draw_group(child, output, anchor_pos)
         elif isinstance(child, si.Line):
             draw_stroke(child, output)
-    output.write(f'    </g>\n')
+    output.write(f'\t\t</g>\n')
 
 
 def draw_stroke(item: si.Line, output):
@@ -204,9 +202,10 @@ def draw_stroke(item: si.Line, output):
     pen = Pen.create(item.tool.value, item.color.value, item.thickness_scale)
 
     # BEGIN stroke
-    output.write(f'        <!-- Stroke tool: {item.tool.name} '
-                 f'color: {item.color.name} thickness_scale: {item.thickness_scale} -->\n')
-    output.write('        <polyline ')
+    if _logger.root.level == logging.DEBUG:
+        output.write(f'\t\t\t<!-- Stroke tool: {item.tool.name} '
+                     f'color: {item.color.name} thickness_scale: {item.thickness_scale} -->\n')
+    output.write('\t\t\t<polyline ')
     output.write(f'style="fill:none;stroke:{pen.stroke_color};'
                  f'stroke-width:{scale(pen.stroke_width)};opacity:{pen.stroke_opacity}" ')
     output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
@@ -229,7 +228,7 @@ def draw_stroke(item: si.Line, output):
                                                       last_segment_width)
             # UPDATE stroke
             output.write('"/>\n')
-            output.write('        <polyline ')
+            output.write('\t\t\t<polyline ')
             output.write(f'style="fill:none; stroke:{segment_color}; '
                          f'stroke-width:{scale(segment_width):.3f}; opacity:{segment_opacity}" ')
             output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
@@ -249,23 +248,23 @@ def draw_stroke(item: si.Line, output):
     output.write('" />\n')
 
 
-def draw_text(text: si.Text, output, anchor_pos):
-    output.write('    <g class="root-text" style="display:inline">\n')
+def draw_text(text: si.Text, output):
+    output.write('\t\t<g class="root-text" style="display:inline">')
 
     # add some style to get readable text
     output.write('''
-    <style>
-        text.heading {
-            font: 14pt serif;
-        }
-        text.bold {
-            font: 8pt sans-serif bold;
-        }
-        text, text.plain {
-            font: 7pt sans-serif;
-        }
-    </style>
-    ''')
+            <style>
+                text.heading {
+                    font: 14pt serif;
+                }
+                text.bold {
+                    font: 8pt sans-serif bold;
+                }
+                text, text.plain {
+                    font: 7pt sans-serif;
+                }
+            </style>
+''')
 
     y_offset = TEXT_TOP_Y
 
@@ -278,6 +277,8 @@ def draw_text(text: si.Text, output, anchor_pos):
         cls = p.style.value.name.lower()
         if str(p):
             # TODO: this doesn't take into account the CrdtStr.properties (font-weight/font-style)
-            output.write(f'        <!-- Text line char_id: {p.start_id} -->\n')
-            output.write(f'        <text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{str(p).strip()}</text>\n')
-    output.write('    </g>\n')
+            if _logger.root.level == logging.DEBUG:
+                output.write(f'\t\t\t<!-- Text line char_id: {p.start_id} -->\n')
+            output.write(f'\t\t\t<text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{str(p).strip()}</text>\n')
+    output.write('\t\t</g>\n')
+
