@@ -7,7 +7,7 @@ https://github.com/chemag/maxio .
 import logging
 import string
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple
 
 from rmscene import read_tree, SceneTree, CrdtId
 from rmscene import scene_items as si
@@ -67,10 +67,10 @@ def rm_to_svg(rm_path, svg_path):
 
 def read_template_svg(template_path: Path) -> str:
     lines = template_path.read_text().splitlines()
-    return "\n".join(lines[2:-1])
+    return "\n".join(lines[2:-2])
 
 
-def tree_to_svg(tree: SceneTree, output, include_template=None):
+def tree_to_svg(tree: SceneTree, output, include_template: Path | None = None):
     """Convert Blocks to SVG."""
 
     # find the anchor pos for further use
@@ -90,10 +90,9 @@ def tree_to_svg(tree: SceneTree, output, include_template=None):
                                        viewbox=f"{xx(x_min)} {yy(y_min)} {width_pt} {height_pt}") + "\n")
 
     if include_template is not None:
-        template = read_template_svg(include_template)
-        output.write(f'\t<g id="template" style="display:inline" transform="scale({SCALE})">\n')
-        output.write(template)
-        output.write('\t</g>\n')
+        output.write(read_template_svg(include_template))
+        output.write(f'\n\t<rect fill="url(#template)" x="{xx(x_min)}" y="{yy(y_min)}"'
+                     f' width="{width_pt}" height="{height_pt}"/>\n')
 
     output.write(f'\t<g id="p1" style="display:inline">\n')
 
@@ -117,7 +116,7 @@ def build_anchor_pos(text: si.Text | None) -> Dict[CrdtId, int]:
     # Special anchors adjusted based on pen_size_test.strokes.rm
     anchor_pos = {
         CrdtId(0, 281474976710654): 100,
-        CrdtId(0, 281474976710655): 130,
+        CrdtId(0, 281474976710655): 100,
     }
 
     if text is not None:
@@ -152,20 +151,23 @@ def get_anchor(item: si.Group, anchor_pos):
     return anchor_x, anchor_y
 
 
-def get_bounding_box(item: si.Group, anchor_pos: Dict[CrdtId, int]) -> (int, int, int, int):
+def get_bounding_box(item: si.Group,
+                     anchor_pos: Dict[CrdtId, int],
+                     default: Tuple[int, int, int, int] = (- SCREEN_WIDTH // 2, SCREEN_WIDTH // 2, 0, SCREEN_HEIGHT)) \
+        -> Tuple[int, int, int, int]:
     """
     Get the bounding box of the given item.
     The minimum size is the default size of the screen.
 
     :return: x_min, x_max, y_min, y_max: the bounding box in screen units (need to be scalded using xx and yy functions)
     """
-    x_min, x_max, y_min, y_max = - SCREEN_WIDTH // 2, SCREEN_WIDTH // 2, 0, SCREEN_HEIGHT
+    x_min, x_max, y_min, y_max = default
 
     for child_id in item.children:
         child = item.children[child_id]
         if isinstance(child, si.Group):
             anchor_x, anchor_y = get_anchor(child, anchor_pos)
-            x_min_t, x_max_t, y_min_t, y_max_t = get_bounding_box(child, anchor_pos)
+            x_min_t, x_max_t, y_min_t, y_max_t = get_bounding_box(child, anchor_pos, (0, 0, 0, 0))
             x_min = min(x_min, x_min_t + anchor_x)
             x_max = max(x_max, x_max_t + anchor_x)
             y_min = min(y_min, y_min_t + anchor_y)
