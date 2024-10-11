@@ -20,14 +20,12 @@ remarkable_palette = {
     1: [125, 125, 125],
     # WHITE = 2
     2: [255, 255, 255],
-    # https://www.color-name.com/highlighter-yellow.color
     # YELLOW = 3
-    3: [251, 247, 25],
+    3: [255, 255, 99],
     # GREEN = 4
     4: [0, 255, 0],
     # PINK = 5
-    # https://www.rapidtables.com/web/color/pink-color.html
-    5: [255, 192, 203],
+    5: [255, 20, 147],
     # BLUE = 6
     6: [0, 0, 255],
     # RED = 7
@@ -121,7 +119,10 @@ class Pen:
 class Fineliner(Pen):
     def __init__(self, base_width, base_color_id):
         super().__init__(base_width, base_color_id)
-        self.base_width = (base_width ** 2.1) * 1.3
+        if   base_width == 1: self.base_width = 1.5
+        elif base_width == 2: self.base_width = 4.0
+        elif base_width == 3: self.base_width = 6.0
+        else: self.base_width = (base_width ** 2.1) * 1.3
         self.name = "Fineliner"
 
 
@@ -217,8 +218,9 @@ class Highlighter(Pen):
     def __init__(self, base_width, base_color_id):
         super().__init__(base_width, base_color_id)
         self.stroke_linecap = "square"
-        self.base_opacity = 0.3
-        self.stroke_opacity = 0.2
+        self.base_opacity = 0.25
+        self.stroke_opacity = 0.15
+        self.base_width = self.base_width * 1.5
         self.name = "Highlighter"
 
 
