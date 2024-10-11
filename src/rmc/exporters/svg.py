@@ -6,8 +6,8 @@ https://github.com/chemag/maxio .
 
 import logging
 import string
+import typing as tp
 from pathlib import Path
-from typing import Dict, Tuple
 
 from rmscene import read_tree, SceneTree, CrdtId
 from rmscene import scene_items as si
@@ -106,7 +106,7 @@ def tree_to_svg(tree: SceneTree, output, include_template: Path | None = None):
     output.write('</svg>\n')
 
 
-def build_anchor_pos(text: si.Text | None) -> Dict[CrdtId, int]:
+def build_anchor_pos(text: tp.Optional[si.Text]) -> tp.Dict[CrdtId, int]:
     """
     Find the anchor pos
 
@@ -151,9 +151,9 @@ def get_anchor(item: si.Group, anchor_pos):
 
 
 def get_bounding_box(item: si.Group,
-                     anchor_pos: Dict[CrdtId, int],
-                     default: Tuple[int, int, int, int] = (- SCREEN_WIDTH // 2, SCREEN_WIDTH // 2, 0, SCREEN_HEIGHT)) \
-        -> Tuple[int, int, int, int]:
+                     anchor_pos: tp.Dict[CrdtId, int],
+                     default: tp.Tuple[int, int, int, int] = (- SCREEN_WIDTH // 2, SCREEN_WIDTH // 2, 0, SCREEN_HEIGHT)) \
+        -> tp.Tuple[int, int, int, int]:
     """
     Get the bounding box of the given item.
     The minimum size is the default size of the screen.
