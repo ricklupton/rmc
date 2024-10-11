@@ -38,10 +38,9 @@ yy = scale
 
 TEXT_TOP_Y = -88
 LINE_HEIGHTS = {
-    # Tuned this line height using template grid -- it definitely seems to be
-    # 71, rather than 70 or 72. Note however that it does interact a bit with
-    # the initial text y-coordinate below.
-    si.ParagraphStyle.PLAIN: 71,
+    # Based on a rm file having 4 anchors based on the line height I was able to find a value of
+    # 69.5, but decided on 70 (to keep integer values)
+    si.ParagraphStyle.PLAIN: 70,
     si.ParagraphStyle.BULLET: 35,
     si.ParagraphStyle.BOLD: 70,
     si.ParagraphStyle.HEADING: 150,
@@ -122,13 +121,13 @@ def build_anchor_pos(text: si.Text | None) -> Dict[CrdtId, int]:
     if text is not None:
         # Save anchor from text
         doc = TextDocument.from_scene_item(text)
-        for p in doc.contents:
-            ypos = text.pos_y + TEXT_TOP_Y
-
+        ypos = text.pos_y + TEXT_TOP_Y
+        for i, p in enumerate(doc.contents):
             anchor_pos[p.start_id] = ypos
             for subp in p.contents:
                 for k in subp.i:
                     anchor_pos[k] = ypos  # TODO check these anchor are used
+            ypos += LINE_HEIGHTS[p.style.value]
 
     return anchor_pos
 
