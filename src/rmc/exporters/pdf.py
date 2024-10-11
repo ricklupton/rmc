@@ -10,9 +10,6 @@ from subprocess import check_call
 
 from rmscene import read_blocks
 from .svg import rm_to_svg, blocks_to_svg
-from .utils import (
-    run_command,
-)
 
 _logger = logging.getLogger(__name__)
 
@@ -29,10 +26,22 @@ def rm_to_pdf(rm_path, pdf_path, debug=0):
 def svg_to_pdf(svg_file, pdf_file):
     """Read svg data from `svg_file` and write PDF data to `pdf_file`."""
 
-    with NamedTemporaryFile("wt", suffix=".svg") as fsvg, NamedTemporaryFile("rb", suffix=".pdf") as fpdf:
+    with NamedTemporaryFile("w", suffix=".svg") as fsvg, NamedTemporaryFile("rb", suffix=".pdf") as fpdf:
         fsvg.write(svg_file.read())
-
+        fsvg.flush() # Make sure content is writen to the file
+        
         # use inkscape to convert svg to pdf
-        check_call(["inkscape", fsvg.name, "--export-filename", fpdf.name])
+        try:
+            print("Convert SVG to PDF using Inkscape")
+            check_call(["inkscape", fsvg.name, "--export-filename", fpdf.name])
+        except FileNotFoundError:
+            print("Inkscape not found in path")
+
+        try:
+            print("Convert SVG to PDF using Inkscape (default MacOS path)")
+            check_call(["/Applications/Inkscape.app/Contents/MacOS/inkscape", fsvg.name, "--export-filename", fpdf.name])
+        except:
+            pass            
 
         pdf_file.write(fpdf.read())
+        pdf_file.flush()
