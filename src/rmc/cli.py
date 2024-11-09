@@ -11,6 +11,7 @@ from rmscene.text import extract_text, simple_text_document
 from .exporters.svg import blocks_to_svg
 from .exporters.pdf import svg_to_pdf
 from .exporters.markdown import print_text
+from .exporters.json import page_to_json
 
 import logging
 
@@ -25,7 +26,7 @@ import logging
 def cli(verbose, from_, to, output, input):
     """Convert to/from reMarkable v6 files.
 
-    Available FORMATs are: `rm` (reMarkable file), `markdown`, `svg`, `pdf`,
+    Available FORMATs are: `rm` (reMarkable file), `markdown`, `svg`, `pdf`, `json`
     `blocks`, `blocks-data`.
 
     Formats `blocks` and `blocks-data` dump the internal structure of the `rm`
@@ -88,6 +89,8 @@ def guess_format(p: Path):
         return "rm"
     if p.suffix == ".svg":
         return "svg"
+    elif p.suffix == ".json":
+        return "json"
     elif p.suffix == ".pdf":
         return "pdf"
     elif p.suffix == ".md" or p.suffix == ".markdown":
@@ -107,6 +110,9 @@ def convert_rm(filename: Path, to, fout):
         elif to == "svg":
             blocks = read_blocks(f)
             blocks_to_svg(blocks, fout)
+        elif to == "json":
+            blocks = read_blocks(f)
+            page_to_json(blocks, fout)
         elif to == "pdf":
             buf = io.StringIO()
             blocks = read_blocks(f)
