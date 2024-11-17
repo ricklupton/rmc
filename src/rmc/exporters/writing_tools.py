@@ -7,32 +7,32 @@ Code originally from https://github.com/lschwetlick/maxio through https://github
 import logging
 import math
 
+from rmscene.scene_items import Pen as PenType
+from rmscene.scene_items import PenColor
+
 _logger = logging.getLogger(__name__)
 
 # color_id to RGB conversion
 # 1. we use "color_id" for a unique, proprietary ID for colors,
 #   (see scene_stream.py):
 RM_PALETTE = {
-    # BLACK = 0
-    0: [0, 0, 0],
-    # GRAY = 1
-    1: [125, 125, 125],
-    # WHITE = 2
-    2: [255, 255, 255],
-    # https://www.color-name.com/highlighter-yellow.color
-    # YELLOW = 3
-    3: [251, 247, 25],
-    # GREEN = 4
-    4: [0, 255, 0],
-    # PINK = 5
-    # https://www.rapidtables.com/web/color/pink-color.html
-    5: [255, 192, 203],
-    # BLUE = 6
-    6: [0, 0, 255],
-    # RED = 7
-    7: [255, 0, 0],
-    # GRAY_OVERLAP = 8
-    8: [125, 125, 125],
+    # Color code can be obtained from extraMetadata in the .content file
+    PenColor.BLACK: (0, 0, 0),
+    PenColor.GRAY: (144, 144, 144),
+    PenColor.WHITE: (255, 255, 255),
+    PenColor.YELLOW: (251, 247, 25),
+    PenColor.GREEN: (0, 255, 0),
+    PenColor.PINK: (255, 192, 203),
+    PenColor.BLUE: (78, 105, 201),
+    PenColor.RED: (179, 62, 57),
+    PenColor.GRAY_OVERLAP: (125, 125, 125),
+    #! Skipped as different colors are used for highlights
+    #! PenColor.HIGHLIGHT = ...
+    PenColor.GREEN_2: (161, 216, 125),
+    PenColor.CYAN: (139, 208, 229),
+    PenColor.MAGENTA: (183, 130, 205),
+    # TODO: fix rmscene first to support this color
+    # PenColor.YELLOW_2: (247, 232, 81),
 }
 
 
@@ -84,35 +84,39 @@ class Pen:
     @classmethod
     def create(cls, pen_nr, color_id, width):
         # Brush
-        if pen_nr == 0 or pen_nr == 12:
+        if pen_nr in (PenType.PAINTBRUSH_1, PenType.PAINTBRUSH_2):
             return Brush(width, color_id)
-        # Calligraphy
-        elif pen_nr == 21:
+        # Calligraphy (spelling mistake in rmscene will eventually be fixed)
+        elif pen_nr == PenType.CALIGRAPHY:
             return Calligraphy(width, color_id)
         # Marker
-        elif pen_nr == 3 or pen_nr == 16:
+        elif pen_nr in (PenType.MARKER_1, PenType.MARKER_2):
             return Marker(width, color_id)
         # BallPoint
-        elif pen_nr == 2 or pen_nr == 15:
+        elif pen_nr in (PenType.BALLPOINT_1, PenType.BALLPOINT_2):
             return Ballpoint(width, color_id)
         # Fineliner
-        elif pen_nr == 4 or pen_nr == 17:
+        elif pen_nr in (PenType.FINELINER_1, PenType.FINELINER_2):
             return Fineliner(width, color_id)
         # Pencil
-        elif pen_nr == 1 or pen_nr == 14:
+        elif pen_nr in (PenType.PENCIL_1, PenType.PENCIL_2):
             return Pencil(width, color_id)
         # Mechanical Pencil
-        elif pen_nr == 7 or pen_nr == 13:
+        elif pen_nr in (PenType.MECHANICAL_PENCIL_1, PenType.MECHANICAL_PENCIL_2):
             return MechanicalPencil(width, color_id)
         # Highlighter
-        elif pen_nr == 5 or pen_nr == 18:
+        elif pen_nr in (PenType.HIGHLIGHTER_1, PenType.HIGHLIGHTER_2):
             width = 15
             return Highlighter(width, color_id)
+        elif pen_nr == PenType.SHADER:
+            # TODO: check if this is correct
+            width = 12
+            return Shader(width, color_id)
         # Erase area
-        elif pen_nr == 8:
+        elif pen_nr == PenType.ERASE_AREA:
             return EraseArea(width, color_id)
         # Eraser
-        elif pen_nr == 6:
+        elif pen_nr == PenType.ERASER:
             color_id = 2
             return Eraser(width, color_id)
         raise Exception(f'Unknown pen_nr: {pen_nr}')
@@ -214,6 +218,15 @@ class Highlighter(Pen):
         self.base_opacity = 0.3
         self.stroke_opacity = 0.2
 
+
+class Shader(Pen):
+    
+    def __init__(self, base_width, base_color_id):
+        super().__init__(base_width, base_color_id)
+        self.stroke_linecap = "round"
+        self.base_opacity = 0.1
+        # self.stroke_opacity = 0.2
+        self.name = "Shader"
 
 class Eraser(Pen):
     def __init__(self, base_width, base_color_id):
