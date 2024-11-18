@@ -1,18 +1,19 @@
 """CLI for converting rm files."""
 
+import io
+import logging
 import os
 import sys
-import io
-from pathlib import Path
 from contextlib import contextmanager
-import click
-from rmscene import read_blocks, write_blocks, TextFormat
-from rmscene.text import extract_text, simple_text_document
-from .exporters.svg import blocks_to_svg
-from .exporters.pdf import svg_to_pdf
-from .exporters.markdown import print_text
+from pathlib import Path
 
-import logging
+import click
+from rmscene import read_blocks, write_blocks
+from rmscene.scene_stream import simple_text_document
+
+from .exporters.markdown import print_text
+from .exporters.pdf import svg_to_pdf
+from .exporters.svg import blocks_to_svg
 
 
 @click.command
