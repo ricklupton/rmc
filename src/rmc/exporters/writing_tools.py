@@ -31,8 +31,7 @@ RM_PALETTE = {
     PenColor.GREEN_2: (161, 216, 125),
     PenColor.CYAN: (139, 208, 229),
     PenColor.MAGENTA: (183, 130, 205),
-    # TODO: fix rmscene first to support this color
-    # PenColor.YELLOW_2: (247, 232, 81),
+    PenColor.YELLOW_2: (247, 232, 81),
 }
 
 
