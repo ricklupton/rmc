@@ -8,11 +8,7 @@ import logging
 from tempfile import NamedTemporaryFile
 from subprocess import check_call
 
-from rmscene import read_blocks
-from .svg import rm_to_svg, blocks_to_svg
-from .utils import (
-    run_command,
-)
+from .svg import rm_to_svg
 
 _logger = logging.getLogger(__name__)
 

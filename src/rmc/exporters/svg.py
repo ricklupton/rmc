@@ -5,259 +5,276 @@ https://github.com/chemag/maxio .
 """
 
 import logging
-import math
 import string
+import typing as tp
+from pathlib import Path
 
-from typing import Iterable
+from rmscene import read_tree, SceneTree, CrdtId
+from rmscene import scene_items as si
+from rmscene.text import TextDocument
 
-from dataclasses import dataclass
-
-from rmscene import (
-    read_blocks,
-    Block,
-    RootTextBlock,
-    AuthorIdsBlock,
-    MigrationInfoBlock,
-    PageInfoBlock,
-    SceneTreeBlock,
-    TreeNodeBlock,
-    SceneGroupItemBlock,
-    SceneLineItemBlock,
-)
-
-from .writing_tools import (
-    Pen,
-)
+from .writing_tools import Pen
 
 _logger = logging.getLogger(__name__)
 
-
 SCREEN_WIDTH = 1404
 SCREEN_HEIGHT = 1872
+SCREEN_DPI = 226
+
+SCALE = 72.0 / SCREEN_DPI
+
+PAGE_WIDTH_PT = SCREEN_WIDTH * SCALE
+PAGE_HEIGHT_PT = SCREEN_HEIGHT * SCALE
+X_SHIFT = PAGE_WIDTH_PT // 2
+
+
+def scale(screen_unit: float) -> float:
+    return screen_unit * SCALE
+
+
+# For now, at least, the xx and yy function are identical to scale
+xx = scale
+yy = scale
+
+TEXT_TOP_Y = -88
+LINE_HEIGHTS = {
+    # Based on a rm file having 4 anchors based on the line height I was able to find a value of
+    # 69.5, but decided on 70 (to keep integer values)
+    si.ParagraphStyle.PLAIN: 70,
+    si.ParagraphStyle.BULLET: 35,
+    si.ParagraphStyle.BOLD: 70,
+    si.ParagraphStyle.HEADING: 150,
+
+    # There appears to be another format code (value 0) which is used when the
+    # text starts far down the page, which case it has a negative offset (line
+    # height) of about -20?
+    #
+    # Probably, actually, the line height should be added *after* the first
+    # line, but there is still something a bit odd going on here.
+}
 
 SVG_HEADER = string.Template("""<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width">
-    <script type="application/ecmascript"> <![CDATA[
-        var visiblePage = 'p1';
-        function goToPage(page) {
-            document.getElementById(visiblePage).setAttribute('style', 'display: none');
-            document.getElementById(page).setAttribute('style', 'display: inline');
-            visiblePage = page;
-        }
-    ]]>
-    </script>
-""")
+<svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width" viewBox="$viewbox">""")
 
 
-XPOS_SHIFT = SCREEN_WIDTH / 2
-
-
-@dataclass
-class SvgDocInfo:
-    height: int
-    width: int
-    xpos_delta: float
-    ypos_delta: float
-
-
-def rm_to_svg(rm_path, svg_path, debug=0):
+def rm_to_svg(rm_path, svg_path):
     """Convert `rm_path` to SVG at `svg_path`."""
     with open(rm_path, "rb") as infile, open(svg_path, "wt") as outfile:
-        blocks = read_blocks(infile)
-        blocks_to_svg(blocks, outfile, debug)
+        tree = read_tree(infile)
+        tree_to_svg(tree, outfile)
 
 
-def blocks_to_svg(blocks: Iterable[Block], output, debug=0):
+def read_template_svg(template_path: Path) -> str:
+    lines = template_path.read_text().splitlines()
+    return "\n".join(lines[2:-2])
+
+
+def tree_to_svg(tree: SceneTree, output, include_template: Path | None = None):
     """Convert Blocks to SVG."""
 
-    # we need to process the blocks twice to understand the dimensions, so
-    # let's put the iterable into a list
-    blocks = list(blocks)
+    # find the anchor pos for further use
+    anchor_pos = build_anchor_pos(tree.root_text)
+    _logger.debug("anchor_pos: %s", anchor_pos)
 
-    # get document dimensions
-    svg_doc_info = get_dimensions(blocks, debug)
+    # find the extremum along x and y
+    x_min, x_max, y_min, y_max = get_bounding_box(tree.root, anchor_pos)
+    width_pt = xx(x_max - x_min + 1)
+    height_pt = yy(y_max - y_min + 1)
+    _logger.debug("x_min, x_max, y_min, y_max: %.1f, %.1f, %.1f, %.1f ; scalded %.1f, %.1f, %.1f, %.1f",
+                  x_min, x_max, y_min, y_max, xx(x_min), xx(x_max), yy(y_min), yy(y_max))
 
     # add svg header
-    output.write(SVG_HEADER.substitute(height=svg_doc_info.height, width=svg_doc_info.width))
-    output.write('\n')
+    output.write(SVG_HEADER.substitute(width=width_pt,
+                                       height=height_pt,
+                                       viewbox=f"{xx(x_min)} {yy(y_min)} {width_pt} {height_pt}") + "\n")
 
-    # add svg page info
-    output.write('    <g id="p1" style="display:inline">\n')
-    output.write('        <filter id="blurMe"><feGaussianBlur in="SourceGraphic" stdDeviation="10" /></filter>\n')
+    if include_template is not None:
+        output.write(read_template_svg(include_template))
+        output.write(f'\n\t<rect fill="url(#template)" x="{xx(x_min)}" y="{yy(y_min)}"'
+                     f' width="{width_pt}" height="{height_pt}"/>\n')
 
-    for block in blocks:
-        if isinstance(block, SceneLineItemBlock):
-            draw_stroke(block, output, svg_doc_info, debug)
-        elif isinstance(block, RootTextBlock):
-            draw_text(block, output, svg_doc_info, debug)
-        else:
-            if debug > 0:
-                print(f'warning: not converting block: {block.__class__}')
+    output.write(f'\t<g id="p1" style="display:inline">\n')
 
-    # Overlay the page with a clickable rect to flip pages
-    output.write('\n')
-    output.write('        <!-- clickable rect to flip pages -->\n')
-    output.write(f'        <rect x="0" y="0" width="{svg_doc_info.width}" height="{svg_doc_info.height}" fill-opacity="0"/>\n')
+    if tree.root_text is not None:
+        draw_text(tree.root_text, output)
+
+    draw_group(tree.root, output, anchor_pos)
+
     # Closing page group
-    output.write('    </g>\n')
+    output.write('\t</g>\n')
     # END notebook
     output.write('</svg>\n')
 
 
-def draw_stroke(block, output, svg_doc_info, debug):
-    if debug > 0:
-        print('----SceneLineItemBlock')
-    # a SceneLineItemBlock contains a stroke
-    output.write(f'        <!-- SceneLineItemBlock item_id: {block.item_id} -->\n')
+def build_anchor_pos(text: tp.Optional[si.Text]) -> tp.Dict[CrdtId, int]:
+    """
+    Find the anchor pos
 
-    # make sure the object is not empty
-    if block.value is None:
-        return
+    :param text: the root text of the remarkable file
+    """
+    # Special anchors adjusted based on pen_size_test.strokes.rm
+    anchor_pos = {
+        CrdtId(0, 281474976710654): 100,
+        CrdtId(0, 281474976710655): 100,
+    }
+
+    if text is not None:
+        # Save anchor from text
+        doc = TextDocument.from_scene_item(text)
+        ypos = text.pos_y + TEXT_TOP_Y
+        for i, p in enumerate(doc.contents):
+            anchor_pos[p.start_id] = ypos
+            for subp in p.contents:
+                for k in subp.i:
+                    anchor_pos[k] = ypos  # TODO check these anchor are used
+            ypos += LINE_HEIGHTS[p.style.value]
+
+    return anchor_pos
+
+
+def get_anchor(item: si.Group, anchor_pos):
+    anchor_x = 0.0
+    anchor_y = 0.0
+    if item.anchor_id is not None:
+        assert item.anchor_origin_x is not None
+        anchor_x = item.anchor_origin_x.value
+        if item.anchor_id.value in anchor_pos:
+            anchor_y = anchor_pos[item.anchor_id.value]
+            _logger.debug("Group anchor: %s -> y=%.1f (scalded y=%.1f)",
+                          item.anchor_id.value,
+                          anchor_y,
+                          yy(anchor_y))
+        else:
+            _logger.warning("Group anchor: %s is unknown!", item.anchor_id.value)
+
+    return anchor_x, anchor_y
+
+
+def get_bounding_box(item: si.Group,
+                     anchor_pos: tp.Dict[CrdtId, int],
+                     default: tp.Tuple[int, int, int, int] = (- SCREEN_WIDTH // 2, SCREEN_WIDTH // 2, 0, SCREEN_HEIGHT)) \
+        -> tp.Tuple[int, int, int, int]:
+    """
+    Get the bounding box of the given item.
+    The minimum size is the default size of the screen.
+
+    :return: x_min, x_max, y_min, y_max: the bounding box in screen units (need to be scalded using xx and yy functions)
+    """
+    x_min, x_max, y_min, y_max = default
+
+    for child_id in item.children:
+        child = item.children[child_id]
+        if isinstance(child, si.Group):
+            anchor_x, anchor_y = get_anchor(child, anchor_pos)
+            x_min_t, x_max_t, y_min_t, y_max_t = get_bounding_box(child, anchor_pos, (0, 0, 0, 0))
+            x_min = min(x_min, x_min_t + anchor_x)
+            x_max = max(x_max, x_max_t + anchor_x)
+            y_min = min(y_min, y_min_t + anchor_y)
+            y_max = max(y_max, y_max_t + anchor_y)
+        elif isinstance(child, si.Line):
+            x_min = min([x_min] + [p.x for p in child.points])
+            x_max = max([x_max] + [p.x for p in child.points])
+            y_min = min([y_min] + [p.y for p in child.points])
+            y_max = max([y_max] + [p.y for p in child.points])
+
+    return x_min, x_max, y_min, y_max
+
+
+def draw_group(item: si.Group, output, anchor_pos):
+    anchor_x, anchor_y = get_anchor(item, anchor_pos)
+    output.write(f'\t\t<g id="{item.node_id}" transform="translate({xx(anchor_x)}, {yy(anchor_y)})">\n')
+    for child_id in item.children:
+        child = item.children[child_id]
+        _logger.debug("Group child: %s %s", child_id, type(child))
+        if _logger.root.level == logging.DEBUG:
+            output.write(f'\t\t<!-- child {child_id} {type(child)} -->\n')
+        if isinstance(child, si.Group):
+            draw_group(child, output, anchor_pos)
+        elif isinstance(child, si.Line):
+            draw_stroke(child, output)
+    output.write(f'\t\t</g>\n')
+
+
+def draw_stroke(item: si.Line, output):
+    # print debug infos
+    if _logger.root.level == logging.DEBUG:
+        _logger.debug("Writing line: %s", item)
+        output.write(f'\t\t\t<!-- Stroke tool: {item.tool.name} '
+                     f'color: {item.color.name} thickness_scale: {item.thickness_scale} -->\n')
 
     # initiate the pen
-    pen = Pen.create(block.value.tool.value, block.value.color.value, block.value.thickness_scale)
-
-    # BEGIN stroke
-    output.write(f'        <!-- Stroke tool: {block.value.tool.name} color: {block.value.color.name} thickness_scale: {block.value.thickness_scale} -->\n')
-    output.write('        <polyline ')
-    output.write(f'style="fill:none;stroke:{pen.stroke_color};stroke-width:{pen.stroke_width};opacity:{pen.stroke_opacity}" ')
-    output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
-    output.write('points="')
+    pen = Pen.create(item.tool.value, item.color.value, item.thickness_scale)
 
     last_xpos = -1.
     last_ypos = -1.
-    last_segment_width = 0
+    last_segment_width = segment_width = 0
     # Iterate through the point to form a polyline
-    for point_id, point in enumerate(block.value.points):
+    for point_id, point in enumerate(item.points):
         # align the original position
-        xpos = point.x + svg_doc_info.xpos_delta
-        ypos = point.y + svg_doc_info.ypos_delta
-        # stretch the original position
-        # ratio = (svg_doc_info.height / svg_doc_info.width) / (1872 / 1404)
-        # if ratio > 1:
-        #    xpos = ratio * ((xpos * svg_doc_info.width) / 1404)
-        #    ypos = (ypos * svg_doc_info.height) / 1872
-        # else:
-        #    xpos = (xpos * svg_doc_info.width) / 1404
-        #    ypos = (1 / ratio) * (ypos * svg_doc_info.height) / 1872
-        # process segment-origination points
+        xpos = point.x
+        ypos = point.y
         if point_id % pen.segment_length == 0:
-            segment_color = pen.get_segment_color(point.speed, point.direction, point.width, point.pressure, last_segment_width)
-            segment_width = pen.get_segment_width(point.speed, point.direction, point.width, point.pressure, last_segment_width)
-            segment_opacity = pen.get_segment_opacity(point.speed, point.direction, point.width, point.pressure, last_segment_width)
-            # print(segment_color, segment_width, segment_opacity, pen.stroke_linecap)
-            # UPDATE stroke
-            output.write('"/>\n')
-            output.write('        <polyline ')
-            output.write(f'style="fill:none; stroke:{segment_color} ;stroke-width:{segment_width:.3f};opacity:{segment_opacity}" ')
+            # if there was a previous segment, end it
+            if last_xpos != -1.:
+                output.write('"/>\n')
+
+            segment_color = pen.get_segment_color(point.speed, point.direction, point.width, point.pressure,
+                                                  last_segment_width)
+            segment_width = pen.get_segment_width(point.speed, point.direction, point.width, point.pressure,
+                                                  last_segment_width)
+            segment_opacity = pen.get_segment_opacity(point.speed, point.direction, point.width, point.pressure,
+                                                      last_segment_width)
+            # create the next segment of the stroke
+            output.write('\t\t\t<polyline ')
+            output.write(f'style="fill:none; stroke:{segment_color}; '
+                         f'stroke-width:{scale(segment_width):.3f}; opacity:{segment_opacity}" ')
             output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
             output.write('points="')
             if last_xpos != -1.:
                 # Join to previous segment
-                output.write(f'{last_xpos:.3f},{last_ypos:.3f} ')
+                output.write(f'{xx(last_xpos):.3f},{yy(last_ypos):.3f} ')
         # store the last position
         last_xpos = xpos
         last_ypos = ypos
         last_segment_width = segment_width
 
-        # BEGIN and END polyline segment
-        output.write(f'{xpos:.3f},{ypos:.3f} ')
+        # add current point
+        output.write(f'{xx(xpos):.3f},{yy(ypos):.3f} ')
 
-    # END stroke
+    # end stroke
     output.write('" />\n')
 
 
-def draw_text(block, output, svg_doc_info, debug):
-    if debug > 0:
-        print('----RootTextBlock')
-    # a RootTextBlock contains text
-    output.write(f'        <!-- RootTextBlock item_id: {block.block_id} -->\n')
+def draw_text(text: si.Text, output):
+    output.write('\t\t<g class="root-text" style="display:inline">')
 
     # add some style to get readable text
-    output.write('        <style>\n')
-    output.write('            .default {\n')
-    output.write('                font: 50px serif\n')
-    output.write('            }\n')
-    output.write('        </style>\n')
+    output.write('''
+            <style>
+                text.heading {
+                    font: 14pt serif;
+                }
+                text.bold {
+                    font: 8pt sans-serif bold;
+                }
+                text, text.plain {
+                    font: 7pt sans-serif;
+                }
+            </style>
+''')
 
-    for text_item in block.text_items:
-        # BEGIN text
-        # https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
-        xpos = block.pos_x + svg_doc_info.width / 2
-        ypos = block.pos_y + svg_doc_info.height / 2
-        output.write(f'        <!-- TextItem item_id: {text_item.item_id} -->\n')
-        if text_item.text.strip():
-            output.write(f'        <text x="{xpos}" y="{ypos}" class="default">{text_item.text.strip()}</text>\n')
+    y_offset = TEXT_TOP_Y
 
+    doc = TextDocument.from_scene_item(text)
+    for p in doc.contents:
+        y_offset += LINE_HEIGHTS[p.style.value]
 
-def get_limits(blocks):
-    xmin = xmax = None
-    ymin = ymax = None
-    for block in blocks:
-        if isinstance(block, SceneLineItemBlock):
-            xmin_tmp, xmax_tmp, ymin_tmp, ymax_tmp = get_limits_stroke(block)
-        # text blocks use a different xpos/ypos coordinate system
-        #elif isinstance(block, RootTextBlock):
-        #    xmin_tmp, xmax_tmp, ymin_tmp, ymax_tmp = get_limits_text(block)
-        else:
-            continue
-        if xmin_tmp is None:
-            continue
-        if xmin is None or xmin > xmin_tmp:
-            xmin = xmin_tmp
-        if xmax is None or xmax < xmax_tmp:
-            xmax = xmax_tmp
-        if ymin is None or ymin > ymin_tmp:
-            ymin = ymin_tmp
-        if ymax is None or ymax < ymax_tmp:
-            ymax = ymax_tmp
-    return xmin, xmax, ymin, ymax
-
-
-def get_limits_stroke(block):
-    # make sure the object is not empty
-    if block.value is None:
-        return None, None, None, None
-    xmin = xmax = None
-    ymin = ymax = None
-    for point in block.value.points:
-        xpos, ypos = point.x, point.y
-        if xmin is None or xmin > xpos:
-            xmin = xpos
-        if xmax is None or xmax < xpos:
-            xmax = xpos
-        if ymin is None or ymin > ypos:
-            ymin = ypos
-        if ymax is None or ymax < ypos:
-            ymax = ypos
-    return xmin, xmax, ymin, ymax
-
-
-def get_limits_text(block):
-    xmin = block.pos_x
-    xmax = block.pos_x + block.width
-    ymin = block.pos_y
-    ymax = block.pos_y
-    return xmin, xmax, ymin, ymax
-
-
-def get_dimensions(blocks, debug):
-    # get block limits
-    xmin, xmax, ymin, ymax = get_limits(blocks)
-    if debug > 0:
-        print(f"xmin: {xmin} xmax: {xmax} ymin: {ymin} ymax: {ymax}")
-    # {xpos,ypos} coordinates are based on the top-center point
-    # of the doc **iff there are no text boxes**. When you add
-    # text boxes, the xpos/ypos values change.
-    xpos_delta = XPOS_SHIFT
-    if xmin is not None and (xmin + XPOS_SHIFT) < 0:
-        # make sure there are no negative xpos
-        xpos_delta += -(xmin + XPOS_SHIFT)
-    #ypos_delta = SCREEN_HEIGHT / 2
-    ypos_delta = 0
-    # adjust dimensions if needed
-    width = int(math.ceil(max(SCREEN_WIDTH, xmax - xmin if xmin is not None and xmax is not None else 0)))
-    height = int(math.ceil(max(SCREEN_HEIGHT, ymax - ymin if ymin is not None and ymax is not None else 0)))
-    if debug > 0:
-        print(f"height: {height} width: {width} xpos_delta: {xpos_delta} ypos_delta: {ypos_delta}")
-    return SvgDocInfo(height=height, width=width, xpos_delta=xpos_delta, ypos_delta=ypos_delta)
+        xpos = text.pos_x
+        ypos = text.pos_y + y_offset
+        cls = p.style.value.name.lower()
+        if str(p):
+            # TODO: this doesn't take into account the CrdtStr.properties (font-weight/font-style)
+            if _logger.root.level == logging.DEBUG:
+                output.write(f'\t\t\t<!-- Text line char_id: {p.start_id} -->\n')
+            output.write(f'\t\t\t<text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{str(p).strip()}</text>\n')
+    output.write('\t\t</g>\n')
