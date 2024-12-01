@@ -43,3 +43,5 @@ Right now the converter works well while there are no text boxes. If you add tex
 `rmc` uses [rmscene](https://github.com/ricklupton/rmscene) to read the `.rm` files, for which https://github.com/ddvk/reader helped a lot in figuring out the structure and meaning of the files.
 
 [@chemag](https://github.com/chemag) added initial support for converting to svg and pdf.
+
+[@Seb-sti1](https://github.com/Seb-sti1) made lots of improvements to svg export and updating to newer `rmscene` versions.
