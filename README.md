@@ -47,3 +47,5 @@ Right now the converter works well while there are no text boxes. If you add tex
 [@Seb-sti1](https://github.com/Seb-sti1) made lots of improvements to svg export and updating to newer `rmscene` versions.
 
 [@ChenghaoMou](https://github.com/ChenghaoMou) added support for new pen types/colours.
+
+[@EelcovanVeldhuizen](https://github.com/EelcovanVeldhuizen) for code updates/fixes.
