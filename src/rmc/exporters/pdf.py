@@ -36,11 +36,11 @@ def svg_to_pdf(svg_file, pdf_file):
         except FileNotFoundError:
             print("Inkscape not found in path")
 
-        try:
-            print("Convert SVG to PDF using Inkscape (default MacOS path)")
-            check_call(["/Applications/Inkscape.app/Contents/MacOS/inkscape", fsvg.name, "--export-filename", fpdf.name])
-        except:
-            pass            
+            try:
+                print("Convert SVG to PDF using Inkscape (default MacOS path)")
+                check_call(["/Applications/Inkscape.app/Contents/MacOS/inkscape", fsvg.name, "--export-filename", fpdf.name])
+            except FileNotFoundError:
+                pass
 
         pdf_file.write(fpdf.read())
         pdf_file.flush()
