@@ -100,13 +100,13 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "rmscene"
-version = "0.5.0"
+version = "0.6.0"
 description = "Read v6 .rm files from the reMarkable tablet"
 optional = false
-python-versions = ">=3.10,<4.0"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "rmscene-0.5.0-py3-none-any.whl", hash = "sha256:aac1a4806b8adb7b19e7988fcf8798ed26cf1a2f2fb8d133b30853506956efb1"},
-    {file = "rmscene-0.5.0.tar.gz", hash = "sha256:fccdcb6ae9d5f810b6e977920e2550d58f64b9ca0307a06b75170a4e7a786cbc"},
+    {file = "rmscene-0.6.0-py3-none-any.whl", hash = "sha256:30a4c8590e8edb4567698adb96dc31004c6d41d752ad04e6c92ab985d0a64c7c"},
+    {file = "rmscene-0.6.0.tar.gz", hash = "sha256:c3d89a026ca2b98cfca3b6bcb4c6132ebe5e86b12192de14b119f286c5de39cd"},
 ]
 
 [package.dependencies]
@@ -156,4 +156,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d39ebb8cee96cf55153ba79a2928c802fa07325afd09dee497d2c7c522ef29a0"
+content-hash = "89300f7c0755c959ecf73ddc93b01d4528f11a86a072e4f384e9626329136aee"
