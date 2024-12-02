@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Directory containing .rm files
 TEST_DIR="tests/rm"
 OUTPUT_DIR="test_output"
