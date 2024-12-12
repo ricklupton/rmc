@@ -112,7 +112,7 @@ class Pen:
             width = 12
             return Shader(width, color_id)
         # Erase area
-        elif pen_nr == PenType.ERASE_AREA:
+        elif pen_nr == PenType.ERASER_AREA:
             return EraseArea(width, color_id)
         # Eraser
         elif pen_nr == PenType.ERASER:
