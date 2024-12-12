@@ -42,6 +42,7 @@ LINE_HEIGHTS = {
     # 69.5, but decided on 70 (to keep integer values)
     si.ParagraphStyle.PLAIN: 70,
     si.ParagraphStyle.BULLET: 35,
+    si.ParagraphStyle.BULLET2: 35,
     si.ParagraphStyle.BOLD: 70,
     si.ParagraphStyle.HEADING: 150,
     si.ParagraphStyle.CHECKBOX: 35,
