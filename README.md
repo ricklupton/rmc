@@ -49,3 +49,5 @@ Right now the converter works well while there are no text boxes. If you add tex
 [@ChenghaoMou](https://github.com/ChenghaoMou) added support for new pen types/colours.
 
 [@EelcovanVeldhuizen](https://github.com/EelcovanVeldhuizen) for code updates/fixes.
+
+[@p4xel](https://github.com/p4xel) for code fixes.
