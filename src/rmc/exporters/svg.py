@@ -9,7 +9,7 @@ import string
 import typing as tp
 from pathlib import Path
 
-from rmscene import read_tree, SceneTree, CrdtId
+from rmscene import CrdtId, SceneTree, read_tree
 from rmscene import scene_items as si
 from rmscene.text import TextDocument
 
@@ -42,8 +42,11 @@ LINE_HEIGHTS = {
     # 69.5, but decided on 70 (to keep integer values)
     si.ParagraphStyle.PLAIN: 70,
     si.ParagraphStyle.BULLET: 35,
+    si.ParagraphStyle.BULLET2: 35,
     si.ParagraphStyle.BOLD: 70,
     si.ParagraphStyle.HEADING: 150,
+    si.ParagraphStyle.CHECKBOX: 35,
+    si.ParagraphStyle.CHECKBOX_CHECKED: 35,
 
     # There appears to be another format code (value 0) which is used when the
     # text starts far down the page, which case it has a negative offset (line
@@ -127,7 +130,7 @@ def build_anchor_pos(text: tp.Optional[si.Text]) -> tp.Dict[CrdtId, int]:
             for subp in p.contents:
                 for k in subp.i:
                     anchor_pos[k] = ypos  # TODO check these anchor are used
-            ypos += LINE_HEIGHTS[p.style.value]
+            ypos += LINE_HEIGHTS.get(p.style.value, 70)
 
     return anchor_pos
 
@@ -267,7 +270,7 @@ def draw_text(text: si.Text, output):
 
     doc = TextDocument.from_scene_item(text)
     for p in doc.contents:
-        y_offset += LINE_HEIGHTS[p.style.value]
+        y_offset += LINE_HEIGHTS.get(p.style.value, 70)
 
         xpos = text.pos_x
         ypos = text.pos_y + y_offset
