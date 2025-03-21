@@ -53,13 +53,13 @@ class Pen:
             opacity = opacity / 255.0
 
         self.base_color = color
-        self.base_opacity = 1
+        self.base_opacity = opacity
         self.name = name
         self.segment_length = 1000
 
         # initial stroke values
         self.stroke_linecap = "round"
-        self.stroke_opacity = opacity
+        self.stroke_opacity = 1
         self.stroke_width = base_width
         self.stroke_color = base_color_id
 
@@ -232,7 +232,7 @@ class Highlighter(Pen):
     def __init__(self, base_width, base_color_id):
         super().__init__("Highlighter", base_width, base_color_id)
         self.stroke_linecap = "square"
-        self.base_opacity = 0.3
+        # self.base_opacity = 0.3
         # self.stroke_opacity = 0.2
 
 
@@ -240,7 +240,7 @@ class Shader(Pen):
     def __init__(self, base_width, base_color_id):
         super().__init__("Shader", base_width, base_color_id)
         self.stroke_linecap = "round"
-        self.base_opacity = 0.1
+        # self.base_opacity = 0.1
         # self.stroke_opacity = 0.2
         self.name = "Shader"
 
