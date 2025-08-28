@@ -4,6 +4,12 @@ Command line tool for converting to/from remarkable `.rm` version 6 (software ve
 
 ## Installation
 
+If you want to render your documents as PDF or SVG, you will need to install cairo.
+
+- On Windows, you need to install cairo using [msys2](https://packages.msys2.org/packages/mingw-w64-x86_64-gtk3)
+- On MacOS, install cairo using homebrew: `brew install cairo libxml2 libffi`
+- On Linux, make sure `libcairo2` is installed. Refer to [this thread](https://github.com/Kozea/CairoSVG/issues/371) for full context on packages if you run into any issues
+
 To install in your current Python environment:
 
     pip install rmc
