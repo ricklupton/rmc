@@ -227,10 +227,14 @@ def draw_stroke(item: si.Line, output):
                                                   last_segment_width)
             segment_opacity = pen.get_segment_opacity(point.speed, point.direction, point.width, point.pressure,
                                                       last_segment_width)
+            # Ensure stroke-width is non-negative (SVG requirement)
+            scaled_width = max(0.0, scale(segment_width))
+            # Ensure opacity is between 0 and 1 (SVG requirement)
+            clamped_opacity = max(0.0, min(1.0, segment_opacity))
             # create the next segment of the stroke
             output.write('\t\t\t<polyline ')
             output.write(f'style="fill:none; stroke:{segment_color}; '
-                         f'stroke-width:{scale(segment_width):.3f}; opacity:{segment_opacity}" ')
+                         f'stroke-width:{scaled_width:.3f}; opacity:{clamped_opacity}" ')
             output.write(f'stroke-linecap="{pen.stroke_linecap}" ')
             output.write('points="')
             if last_xpos != -1.:
