@@ -26,8 +26,7 @@ RM_PALETTE = {
     PenColor.BLUE: (78, 105, 201),
     PenColor.RED: (179, 62, 57),
     PenColor.GRAY_OVERLAP: (125, 125, 125),
-    #! Skipped as different colors are used for highlights
-    #! PenColor.HIGHLIGHT = ...
+    PenColor.HIGHLIGHT: (255, 255, 0),  # Default highlight yellow
     PenColor.GREEN_2: (161, 216, 125),
     PenColor.CYAN: (139, 208, 229),
     PenColor.MAGENTA: (183, 130, 205),
