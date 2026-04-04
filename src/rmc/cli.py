@@ -3,6 +3,7 @@
 import os
 import sys
 import io
+import typing
 from pathlib import Path
 from contextlib import contextmanager
 import click
@@ -10,7 +11,7 @@ from rmscene import read_tree, read_blocks, write_blocks, simple_text_document
 from .exporters.svg import tree_to_svg
 from .exporters.pdf import svg_to_pdf
 from .exporters.markdown import print_text
-
+from .exporters.inmkl import tree_to_xml, tree_to_html
 import logging
 
 
@@ -40,6 +41,7 @@ def cli(verbose, from_, to, output, input):
         logging.basicConfig(level=logging.WARNING)
 
     input = [Path(p) for p in input]
+    output = Path(output) if output else sys.stdout
     if output is not None:
         output = Path(output)
 
@@ -51,11 +53,19 @@ def cli(verbose, from_, to, output, input):
         if output is None:
             raise click.UsageError("Must specify --output or --to")
         to = guess_format(output)
-
     if from_ == "rm":
-        with open_output(to, output) as fout:
-            for fn in input:
-                convert_rm(Path(fn), to, fout)
+        if to == "inkml":
+            # A bit of a dirty trick, but allows conforming to the existing convert_rm function.
+            output_xml = Path(str(output) + '.xml')
+            output_html = Path(str(output) + '.html')
+            with open_output(to, output_xml) as fout, open_output(to, output_html) as f2out:
+                for fn in input:
+                    convert_rm(Path(fn), to+"/xml", fout)
+                    convert_rm(Path(fn), to+"/html", f2out)
+        else:
+            with open_output(to, output) as fout:
+                for fn in input:
+                    convert_rm(Path(fn), to, fout)
     elif from_ == "markdown":
         text = "".join(
             Path(fn).read_text() for fn in input
@@ -116,7 +126,7 @@ def tree_structure(item):
         return item
 
 
-def convert_rm(filename: Path, to, fout):
+def convert_rm(filename: Path, to, fout: typing.IO):
     with open(filename, "rb") as f:
         if to == "blocks":
             pprint_blocks(f, fout)
@@ -139,6 +149,12 @@ def convert_rm(filename: Path, to, fout):
             tree_to_svg(tree, buf)
             buf.seek(0)
             svg_to_pdf(buf, fout)
+        elif to == "inkml/xml":
+            tree = read_tree(f)
+            tree_to_xml(tree, fout)
+        elif to == "inkml/html":
+            tree = read_tree(f)
+            tree_to_html(tree, fout)
         else:
             raise click.UsageError("Unknown format %s" % to)
 

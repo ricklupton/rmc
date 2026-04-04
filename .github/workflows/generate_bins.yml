@@ -1,0 +1,49 @@
+name: Build rmc Binaries
+
+on:
+  workflow_dispatch: # Manual trigger
+  push:
+    tags:
+      - 'v*' # Auto-run when you tag a release
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # We map the OS to the exact artifact name your Avalonia C# app is expecting!
+        include:
+          - os: ubuntu-latest
+            artifact_name: rmc-linux-x64
+          - os: windows-latest
+            artifact_name: rmc-x64.exe
+          - os: macos-latest
+            artifact_name: rmc-macos
+            
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+    
+    - name: Install Poetry
+      run: pip install poetry
+    - name: Refesh lock file
+      run: poetry lock
+    - name: Install Dependencies
+      run: poetry install
+
+    - name: Build with PyInstaller
+      run: poetry run python build_exe.py
+
+    - name: Upload OS Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        # NOTE: Make sure build_exe.py outputs your final file into a 'dist' folder!
+        path: dist/*
