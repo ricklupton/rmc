@@ -51,3 +51,17 @@ Right now the converter works well while there are no text boxes. If you add tex
 [@EelcovanVeldhuizen](https://github.com/EelcovanVeldhuizen) for code updates/fixes.
 
 [@p4xel](https://github.com/p4xel) for code fixes.
+
+
+## Alternative Installation Methods
+
+To install from the current HEAD in the rmc repo:
+
+```
+$ pip install git+https://github.com/ricklupton/rmc.git@main
+```
+
+To install from your current fork of the repo:
+```
+$ pip install /full/path/to/your/fork/of/rmc
+```

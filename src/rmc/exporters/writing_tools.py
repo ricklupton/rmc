@@ -26,8 +26,13 @@ RM_PALETTE = {
     PenColor.BLUE: (78, 105, 201),
     PenColor.RED: (179, 62, 57),
     PenColor.GRAY_OVERLAP: (125, 125, 125),
-    #! Skipped as different colors are used for highlights
-    #! PenColor.HIGHLIGHT = ...
+    # TODO: color mechanism is broken, as HIGHLIGHT is used for all the
+    # highlighter colors. It is better though to produce a highlight color
+    # than to make rmc crash.
+    # Note that similar single-color name issues happen for ballpoint pen and
+    # paintbrusher (though color works for fineliner, caligraphy pen, and
+    # marker).
+    PenColor.HIGHLIGHT: (247, 232, 81),
     PenColor.GREEN_2: (161, 216, 125),
     PenColor.CYAN: (139, 208, 229),
     PenColor.MAGENTA: (183, 130, 205),
