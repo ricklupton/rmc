@@ -56,6 +56,24 @@ def lookup_pen_color(pen_color_value, explicit_color_rgba):
         return color
 
 
+def svg_rgb(color):
+    """Return an SVG rgb() colour string for an RGB/RGBA tuple."""
+    r, g, b = color[:3]
+    return f"rgb({r}, {g}, {b})"
+
+
+def svg_alpha(color):
+    """Return the alpha channel of an RGB/RGBA tuple as an SVG opacity.
+
+    rmscene stores explicit reMarkable v6 shader/highlighter colours as
+    8-bit RGBA tuples, for example ``(48, 74, 224, 77)``. SVG/CSS
+    opacity is 0..1, not 0..255, so keep colour and opacity separate.
+    """
+    if len(color) < 4:
+        return 1
+    return clamp(color[3] / 255)
+
+
 class Pen:
     def __init__(self, name, base_width, base_color):
         self.base_width = base_width
@@ -87,10 +105,10 @@ class Pen:
         return self.base_width
 
     def get_segment_color(self, speed, direction, width, pressure, last_width):
-        return "rgba" + str(tuple(self.base_color))
+        return svg_rgb(self.base_color)
 
     def get_segment_opacity(self, speed, direction, width, pressure, last_width):
-        return self.base_opacity
+        return self.base_opacity * svg_alpha(self.base_color)
 
     @classmethod
     def create(cls, pen_nr, color_id, width):
@@ -220,7 +238,7 @@ class Brush(Pen):
                          int(rev_intensity * (255 - self.base_color[2])),
                          self.base_color[3]]
 
-        return "rgba" + str(tuple(segment_color))
+        return svg_rgb(segment_color)
 
 
 class Highlighter(Pen):
@@ -236,7 +254,9 @@ class Shader(Pen):
     def __init__(self, base_width, base_color):
         super().__init__("Shader", base_width, base_color)
         self.stroke_linecap = "round"
-        self.base_opacity = 0.1
+        # reMarkable v6 shader strokes carry opacity in color_rgba; do not
+        # apply an additional hard-coded fade here.
+        self.base_opacity = 1
         # self.stroke_opacity = 0.2
         self.name = "Shader"
 
