@@ -8,7 +8,7 @@ import logging
 import string
 import typing as tp
 from pathlib import Path
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, quoteattr
 
 from rmscene import CrdtId, SceneTree, read_tree
 from rmscene import scene_items as si
@@ -58,7 +58,8 @@ LINE_HEIGHTS = {
 }
 
 SVG_HEADER = string.Template("""<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" height="$height" width="$width" viewBox="$viewbox">""")
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     height="$height" width="$width" viewBox="$viewbox">""")
 
 
 def rm_to_svg(rm_path, svg_path):
@@ -95,7 +96,7 @@ def tree_to_svg(tree: SceneTree, output, include_template: Path | None = None):
     if include_template is not None:
         output.write(read_template_svg(include_template))
         output.write(f'\n\t<rect fill="url(#template)" x="{xx(x_min)}" y="{yy(y_min)}"'
-                     f' width="{width_pt}" height="{height_pt}"/>\n')
+                     f' width="{width_pt}" height="{height_pt}" inkscape:label="Template"/>\n')
 
     output.write(f'\t<g id="p1" style="display:inline">\n')
 
@@ -193,7 +194,9 @@ def get_bounding_box(item: si.Group,
 
 def draw_group(item: si.Group, output, anchor_pos):
     anchor_x, anchor_y = get_anchor(item, anchor_pos)
-    output.write(f'\t\t<g id="{item.node_id}" transform="translate({xx(anchor_x)}, {yy(anchor_y)})">\n')
+    label = item.label.value if item.label is not None else ""
+    label_attr = f' inkscape:label={quoteattr(label)}' if label else ""
+    output.write(f'\t\t<g id="{item.node_id}" transform="translate({xx(anchor_x)}, {yy(anchor_y)})"{label_attr}>\n')
     for child_id in item.children:
         child = item.children[child_id]
         _logger.debug("Group child: %s %s", child_id, type(child))
