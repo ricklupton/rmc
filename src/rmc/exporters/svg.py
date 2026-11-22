@@ -8,6 +8,7 @@ import logging
 import string
 import typing as tp
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 from rmscene import CrdtId, SceneTree, read_tree
 from rmscene import scene_items as si
@@ -287,5 +288,5 @@ def draw_text(text: si.Text, output):
             # TODO: this doesn't take into account the CrdtStr.properties (font-weight/font-style)
             if _logger.root.level == logging.DEBUG:
                 output.write(f'\t\t\t<!-- Text line char_id: {p.start_id} -->\n')
-            output.write(f'\t\t\t<text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{str(p).strip()}</text>\n')
+            output.write(f'\t\t\t<text x="{xx(xpos)}" y="{yy(ypos)}" class="{cls}">{escape(str(p).strip())}</text>\n')
     output.write('\t\t</g>\n')
