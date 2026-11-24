@@ -28,15 +28,15 @@ for file in "$TEST_DIR"/*.rm; do
         
         # Run first test command
         echo "Running test markdown..."
-        rmc -t markdown "$file" -o "$OUTPUT_DIR/markdown/$file_name.md"
-        
+        poetry run rmc -t markdown "$file" -o "$OUTPUT_DIR/markdown/$file_name.md"
+
         # Run second test command
         echo "Running test svg..."
-        rmc -t svg "$file" -o "$OUTPUT_DIR/svg/$file_name.svg"
+        poetry run rmc -t svg "$file" -o "$OUTPUT_DIR/svg/$file_name.svg"
 
         # Run third test command
         echo "Running test pdf..."
-        rmc -t pdf "$file" -o "$OUTPUT_DIR/pdf/$file_name.pdf"
+        poetry run rmc -t pdf "$file" -o "$OUTPUT_DIR/pdf/$file_name.pdf"
 
         echo "----------------------------------------"
     fi
